@@ -364,6 +364,8 @@ and infer_msf_c ~withcheck fenv tbl c ms =
   List.fold_right (infer_msf_i ~withcheck fenv tbl) c ms
 
 
+let implicit_vars = ref Sv.empty
+
 (* --------------------------------------------------------- *)
 (* Typing environment                                        *)
 
@@ -416,6 +418,11 @@ module Env : sig
   val add_spill : env -> var -> var option
   val set_spill : env -> venv -> var_i list -> venv
   val set_unspill : env -> venv -> var_i list -> venv
+
+  val venv_forget : Sv.t -> venv -> venv
+  (** Restrict knowledge to the given set of variables. *)
+
+  val implicit_vars : env -> Sv.t
 
 end = struct
 
@@ -633,6 +640,14 @@ end = struct
       set_ty env venv x ty) venv (get_spilled env x)
    in
    List.fold_left add venv xs
+
+  let venv_forget lv x =
+    let lv = Sv.union lv !implicit_vars in
+    { x with
+      vtype = Mv.filter (fun k _ -> Sv.mem k lv) x.vtype;
+      vars = Sv.inter x.vars lv }
+
+  let implicit_vars venv = Hv.fold (fun _ ox s -> match ox with Some x -> Sv.add x s | None -> s) venv.spilled Sv.empty
 
 end
 
@@ -997,7 +1012,12 @@ let move_msf ~loc env (msf, venv) mso msi =
 (* --------------------------------------------------------------- *)
 (* [ty_instr env msf i] return msf' such that env, msf |- i : msf' *)
 
-let rec ty_instr is_ct_asm fenv env ((msf,venv) as msf_e :msf_e) i =
+let rec ty_instr is_ct_asm fenv env (msf, venv) i =
+  let venv = Env.venv_forget (fst i.i_info) venv in
+  let msf, venv = ty_instr_r is_ct_asm fenv env (msf, venv) i in
+  msf, Env.venv_forget (snd i.i_info) venv
+
+and ty_instr_r is_ct_asm fenv env ((msf,venv) as msf_e :msf_e) i =
   let loc = i.i_loc.L.base_loc in
   match i.i_desc with
   | Csyscall (xs, o, es) ->
@@ -1063,16 +1083,19 @@ let rec ty_instr is_ct_asm fenv env ((msf,venv) as msf_e :msf_e) i =
     end
 
   | Cif(e, c1, c2) ->
-    if is_inline i then
-      let msf1, venv1 = ty_cmd is_ct_asm fenv env (msf, venv) c1 in
-      let msf2, venv2 = ty_cmd is_ct_asm fenv env (msf, venv) c2 in
-      MSF.max msf1 msf2, Env.max env venv1 venv2
-    else begin
-      ensure_public env venv loc e;
-      let msf1, venv1 = ty_cmd is_ct_asm fenv env (MSF.enter_if msf e, venv) c1 in
-      let msf2, venv2 = ty_cmd is_ct_asm fenv env (MSF.enter_if msf (Papp1(Onot, e)), venv) c2 in
-      MSF.max msf1 msf2, Env.max env venv1 venv2
-    end
+    let msf1, msf2 =
+      if is_inline i then
+        msf, msf
+      else begin
+          ensure_public env venv loc e;
+          MSF.enter_if msf e, MSF.enter_if msf (Papp1(Onot, e))
+        end
+    in
+    let msf1, venv1 = ty_cmd is_ct_asm fenv env (msf1, venv) c1 in
+    let msf2, venv2 = ty_cmd is_ct_asm fenv env (msf2, venv) c2 in
+    let venv1 = Env.venv_forget (snd i.i_info) venv1 in
+    let venv2 = Env.venv_forget (snd i.i_info) venv2 in
+    MSF.max msf1 msf2, Env.max env venv1 venv2
 
   | Cfor(x, (_, e1, e2), c) ->
       ensure_public env venv loc e1;
@@ -1087,7 +1110,7 @@ let rec ty_instr is_ct_asm fenv env ((msf,venv) as msf_e :msf_e) i =
       Env.ensure_le loc venv' venv1; (* venv' <= venv1 *)
       msf', venv1
 
-  | Cwhile(_, c1, e, _, c2) ->
+  | Cwhile(_, c1, e, (_, (_, live_at_c2)), c2) ->
     (* c1; while e do (c2; c1) *)
     (* env, msf <= env1, msf1
        env1, msf1 |- c1 : msf2, env2   env2 |- e : public
@@ -1105,7 +1128,7 @@ let rec ty_instr is_ct_asm fenv env ((msf,venv) as msf_e :msf_e) i =
     let venv1 = Env.freshen env venv in (* venv <= venv1 *)
     let (msf2, venv2) = ty_cmd is_ct_asm fenv env (msf1, venv1) c1 in
     ensure_public env venv2 loc e;
-    let (msf', venv') = ty_cmd is_ct_asm fenv env (MSF.enter_if msf2 e, venv2) c2 in
+    let (msf', venv') = ty_cmd is_ct_asm fenv env (MSF.enter_if msf2 e, Env.venv_forget live_at_c2 venv2) c2 in
     let _ = MSF.end_loop loc msf1 msf' in
     Env.ensure_le loc venv' venv1; (* venv' <= venv1 *)
     MSF.enter_if msf2 (Papp1(Onot, e)), venv2
@@ -1424,6 +1447,8 @@ let init_constraint fenv f =
 
   let venv = Sv.fold do_spill (spilled f) venv in
 
+  implicit_vars := Env.implicit_vars env;
+
   (* infer modmsf and check consistency with user info *)
   let modmsf = modmsf_c fenv f.f_body in
   let umodmsf =
@@ -1512,6 +1537,7 @@ and ty_fun_infer is_ct_asm fenv fn =
 
 
 let ty_prog is_ct_asm (prog:('info, 'asm) prog) fl =
+  let prog = Liveness.liveness false prog in
   let prog = snd prog in
   let fenv = { env_ty = Hf.create 101; env_def = prog } in
   let fl =
