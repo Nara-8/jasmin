@@ -976,6 +976,7 @@ module type EcArray = sig
   val add_arr: Env.t -> wsize -> int -> unit
   val add_jarray: Env.t -> wsize -> int -> unit
   val of_list:  Env.t -> wsize -> int -> ec_expr
+  val to_list:  Env.t -> wsize -> int -> ec_expr
 
 end
 
@@ -1100,6 +1101,8 @@ module EcArrayOld : EcArray = struct
   let add_jarray env ws n = Env.add_jarray env ws n
 
   let of_list =  of_list_dfl
+
+  let to_list env ws n = assert false (* Not implemented, not used in this mode. *)
 end
 
 module EcWArray: EcArray = struct
@@ -1213,6 +1216,8 @@ module EcWArray: EcArray = struct
   let add_jarray env ws n = Env.add_jarray env ws n
 
   let of_list =  of_list_dfl
+
+  let to_list env ws n = assert false (* Not implemented, not used in this mode. *)
 end
 
 module EcBArray : EcArray = struct
@@ -1275,6 +1280,7 @@ module EcBArray : EcArray = struct
   let of_list env ws n =
     Eident [ec_BArray env (arr_size ws n); Format.sprintf "of_list%i" (int_of_ws ws)]
 
+  let to_list env ws n = Eident [ec_BArray env (arr_size ws n); Format.sprintf "to_list"]
 end
 
 (* ------------------------------------------------------------------- *)
@@ -1454,7 +1460,7 @@ end
 
 module type EcLeakage = sig
   val ec_leaks_es: Env.t -> exprs -> ec_instr list
-  val ec_leaks_opn: Env.t -> exprs -> 'asm Sopn.sopn -> ec_instr list
+  val ec_leaks_opn: Env.t -> 'asm Sopn.sopn -> exprs -> ec_instr list
   val ec_leaking_if: Env.t -> expr -> (Env.t -> ec_stmt) -> (Env.t -> ec_stmt) -> ec_stmt
   val ec_leaking_while: Env.t -> (Env.t -> ec_stmt) -> expr -> (Env.t -> ec_stmt) -> ec_stmt
   val ec_leaking_for: Env.t -> (Env.t -> ec_stmt) -> expr -> expr -> ec_stmt -> ec_expr -> ec_stmt -> ec_stmt
@@ -1577,22 +1583,23 @@ module LC_Val: LeakageConfig = struct
   let leak_values = true
 end
 
-module EcLeakLocal(EE: EcExpression) (LC: LeakageConfig): EcLeakage = struct
+module EcLeakLocal(EE: EcExpression) (EA: EcArray) (LC: LeakageConfig): EcLeakage = struct
   open EE
 
   let asgn s e = ESasgn ([LvIdent [s]], e)
 
   let int_of_word ws e = Papp1 (E.Oint_of_word ws, e)
 
-  let expr2leak env e =
-    let sty = match ty_expr e with
-    | Bty Bool -> "bool"
-    | Bty Int  -> "int"
-    | Bty (U ws) -> fmt_Wsz ws
-    | Arr(_, _) -> assert false
-    in
-    let leakf = ec_ident (Format.sprintf "Leak_%s_" sty) in
-    Eapp (leakf, [toec_expr env e])
+  let expr2leak env e = match ty_expr e with
+    | Arr (ws, n) ->
+        Eapp (ec_ident "Leak_array_", [Eapp (EA.to_list env ws n, [toec_expr env e])])
+    | Bty bty ->
+      let sty = match bty with
+      | Bool -> "bool"
+      | Int  -> "int"
+      | (U ws) -> fmt_Wsz ws
+      in
+      Eapp (ec_ident (Format.sprintf "Leak_%s_" sty), [toec_expr env e])
 
   let leak_addr env e = Eapp (ec_ident "Leak_addr", [expr2leak env e])
 
@@ -1612,7 +1619,7 @@ module EcLeakLocal(EE: EcExpression) (LC: LeakageConfig): EcLeakage = struct
     if LC.leak_values then
       let e = Pvar v in
       match ty_expr e with
-      | Arr(_, _) -> if skip_array then [] else assert false
+      | Arr(_, _) -> if skip_array then [] else [leak_data env e]
       | _ -> [leak_data env e]
     else
       []
@@ -1702,10 +1709,6 @@ module EcLeakLocal(EE: EcExpression) (LC: LeakageConfig): EcLeakage = struct
     | Sopn.Oasm asm_op -> ec_leaks_asm_op env asm_op es
  
   let reset_leak vleak = [asgn vleak (Elist [])]
-
-  let nested_block env c =
-    let env = {env with nesting = env.nesting + 1} in
-    reset_leak (leakacc env) @ (c env)
 
 (*  let leak_cond env e = (leaks_e env e) @ (leak_val env e) *)
   let leak_cond env e = (leaks_e env e) @ [Eapp(ec_ident "Leak_cond", [toec_expr env e])]
@@ -2154,8 +2157,8 @@ let extract ((globs,funcs):('info, 'asm) prog) arch pd asmOp (model: model) amod
   let module EE = EcExpression(EA) in
   let module EL: EcLeakage = (val match model with
     | Normal -> (module EcLeakNormal(EE): EcLeakage)
-    | ConstantTime -> (module EcLeakLocal(EE)(LC_CT): EcLeakage)
-    | ValLeak -> (module EcLeakLocal(EE)(LC_Val): EcLeakage)
+    | ConstantTime -> (module EcLeakLocal(EE)(EA)(LC_CT): EcLeakage)
+    | ValLeak -> (module EcLeakLocal(EE)(EA)(LC_Val): EcLeakage)
     | ConstantTimeGlobal -> (module EcLeakConstantTimeGlobal(EE): EcLeakage)
   ) in
   let module E = Extraction(EA)(EL) in
