@@ -32,7 +32,10 @@ let string_of_velem s ws ve =
 
 (* -------------------------------------------------------------------- *)
 
-let string_of_cmp_ty = function E.Cmp_w (Unsigned, _) -> "u" | _ -> ""
+let string_of_cmp_ty = function 
+  | E.Cmp_ui _ -> "uint" (* TODO: is this needed ? *)
+  | E.Cmp_k (E.Cmp_w (Unsigned, _)) -> "u"
+  | E.Cmp_k _ -> ""
 
 let string_of_cmp_kind = function
   | E.Cmp_w (sg, sz) -> asprintf " %d%s" (int_of_ws sz) (string_of_signess sg)
@@ -41,6 +44,10 @@ let string_of_cmp_kind = function
 let string_of_op_kind = function
   | E.Op_w ws -> asprintf "%du" (int_of_ws ws)
   | E.Op_int -> ""
+
+let string_of_op_kind_ui = function
+  | E.Op_ui ws -> asprintf "%duint" (int_of_ws ws)
+  | E.Op_k op_kind -> string_of_op_kind op_kind
 
 (* -------------------------------------------------------------------- *)
 
@@ -59,9 +66,9 @@ let string_of_op2 = function
   | E.Obeq -> "=="
   | E.Oand -> "&&"
   | E.Oor -> "||"
-  | E.Oadd k -> "+" ^ string_of_op_kind k
-  | E.Omul k -> "*" ^ string_of_op_kind k
-  | E.Osub k -> "-" ^ string_of_op_kind k
+  | E.Oadd k -> "+" ^ string_of_op_kind_ui k
+  | E.Omul k -> "*" ^ string_of_op_kind_ui k
+  | E.Osub k -> "-" ^ string_of_op_kind_ui k
   | E.Odiv k -> "/" ^ string_of_cmp_kind k
   | E.Omod k -> "%" ^ string_of_cmp_kind k
   | E.Oland w -> string_of_op_w "&" w
@@ -73,8 +80,8 @@ let string_of_op2 = function
   | E.Oasr (E.Op_w w) -> asprintf ">>%ds" (int_of_ws w)
   | E.Oror w -> string_of_op_w ">>r" w
   | E.Orol w -> string_of_op_w "<<r" w
-  | E.Oeq k -> "==" ^ string_of_op_kind k
-  | E.Oneq k -> "!=" ^ string_of_op_kind k
+  | E.Oeq k -> "==" ^ string_of_op_kind_ui k
+  | E.Oneq k -> "!=" ^ string_of_op_kind_ui k
   | E.Olt k -> "<" ^ string_of_cmp_ty k
   | E.Ole k -> "<=" ^ string_of_cmp_ty k
   | E.Ogt k -> ">" ^ string_of_cmp_ty k

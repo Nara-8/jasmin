@@ -594,6 +594,10 @@ let fmt_op2 fmt op =
     | E.Cmp_w (Unsigned, _) -> Format.fprintf fmt "\\u%s" ws
     | _                     -> Format.fprintf fmt "%s" is
   in
+  let fmt_cmp_kind_ui fmt ws is = function
+    | E.Cmp_ui _ -> assert false
+    | E.Cmp_k cmp_k -> fmt_signed fmt ws is cmp_k
+  in
   let fmt_vop2 fmt (s,ve,ws) =
     Format.fprintf fmt "\\v%s%iu%i" s (int_of_velem ve) (int_of_ws ws)
   in
@@ -619,8 +623,8 @@ let fmt_op2 fmt op =
 
   | E.Oeq   _ -> Format.fprintf fmt "="
   | E.Oneq  _ -> Format.fprintf fmt "<>"
-  | E.Olt s| E.Ogt s -> fmt_signed fmt "lt" "<" s
-  | E.Ole s | E.Oge s -> fmt_signed fmt "le" "<=" s
+  | E.Olt s| E.Ogt s -> fmt_cmp_kind_ui fmt "lt" "<" s
+  | E.Ole s | E.Oge s -> fmt_cmp_kind_ui fmt "le" "<=" s
 
   | Ovadd(ve,ws) -> fmt_vop2 fmt ("add", ve, ws)
   | Ovsub(ve,ws) -> fmt_vop2 fmt ("sub", ve, ws)
@@ -908,7 +912,7 @@ let save_array_theory ~prefix at =
 (* Easycrypt AST construction helpers *)
 
 let add_ptr pd x e =
-  (Prog.tu pd, Papp2 (E.Oadd ( E.Op_w pd), Pvar x, e))
+  (Prog.tu pd, Papp2 (E.Oadd ( E.op_w pd), Pvar x, e))
 
 let ec_ident s = Eident [s]
 let ec_aget a i = Eop2 (ArrayGet, a, i)

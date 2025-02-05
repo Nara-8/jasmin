@@ -408,12 +408,12 @@ let is_stack_array x =
 let ( ++ ) e1 e2 =
   match e1, e2 with
   | Pconst n1, Pconst n2 -> Pconst (Z.add n1 n2)
-  | _, _                 -> Papp2(Oadd Op_int, e1, e2)
+  | _, _                 -> Papp2(Oadd E.op_int, e1, e2)
 
 let ( ** ) e1 e2 =
   match e1, e2 with
   | Pconst n1, Pconst n2 -> Pconst (Z.mul n1 n2)
-  | _, _                 -> Papp2(Omul Op_int, e1, e2)
+  | _, _                 -> Papp2(Omul E.op_int, e1, e2)
 
 let cnst i = Pconst i
 let icnst i = cnst (Z.of_int i)

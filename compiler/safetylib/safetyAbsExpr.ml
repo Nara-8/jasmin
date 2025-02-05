@@ -320,15 +320,15 @@ module AbsExpr (AbsDom : AbsNumBoolType) = struct
       aeval_cst_zint abs e
     (* No need to check for overflows because we do not allow word operations. *)
 
-    | Papp2 (Oadd Op_int, e1, e2) ->
+    | Papp2 (Oadd (Op_k Op_int), e1, e2) ->
       obind2 (fun x y -> Some (Z.add x y))
         (aeval_cst_zint abs e1) (aeval_cst_zint abs e2)
 
-    | Papp2 (Osub Op_int, e1, e2) ->
+    | Papp2 (Osub (Op_k Op_int), e1, e2) ->
       obind2 (fun x y -> Some (Z.sub x y))
         (aeval_cst_zint abs e1) (aeval_cst_zint abs e2)
 
-    | Papp2 (Omul Op_int, e1, e2) ->
+    | Papp2 (Omul (Op_k Op_int), e1, e2) ->
       obind2 (fun x y -> Some (Z.mul x y))
         (aeval_cst_zint abs e1) (aeval_cst_zint abs e2)
 
@@ -689,8 +689,9 @@ module AbsExpr (AbsDom : AbsNumBoolType) = struct
 
   let op2_to_typ op2 =
     let to_cmp_kind = function
-      | E.Op_int -> E.Cmp_int
-      | E.Op_w ws -> E.Cmp_w (Unsigned, ws) in
+      | E.Op_ui ws -> E.Cmp_ui ws
+      | E.Op_k E.Op_int -> E.cmp_int
+      | E.Op_k (E.Op_w ws) -> E.cmp_w Unsigned ws in
 
     match op2 with
     | E.Obeq | E.Oand | E.Oor | E.Oadd _ | E.Omul _ | E.Osub _
@@ -786,13 +787,14 @@ module AbsExpr (AbsDom : AbsNumBoolType) = struct
 
     (* (Sub lin2 lin1) lincos 0  *)
     try let lin2,lin1 = match cmp_kind with
-        | E.Cmp_int ->
+        | E.Cmp_ui _ (* TODO: what should be done here ? *)
+        | E.Cmp_k E.Cmp_int ->
           let lin1 = linearize_iexpr abs e1'
           and lin2 = linearize_iexpr abs e2' in
           lin2, lin1
         (* Mtexpr.(binop Sub lin2 lin1) *)
 
-        | E.Cmp_w (sign, ws) ->
+        | E.Cmp_k (E.Cmp_w (sign, ws)) ->
           let lin1 = match ty_expr e1' with
             | Bty Int   -> linearize_iexpr abs e1'
             | Bty (U _) -> linearize_wexpr abs e1'
@@ -1062,7 +1064,7 @@ module AbsExpr (AbsDom : AbsNumBoolType) = struct
       else aeval_top_offset abs outv
 
     | Some outv, Papp2 (op2,el,er) -> begin match op2,el with
-        | E.Oadd ( E.Op_w U64), Pvar y ->
+        | E.Oadd ( E.Op_k (E.Op_w U64)), Pvar y ->
           if valid_offset_var abs ws_o y then
             apply_offset_expr abs outv info y er
           else aeval_top_offset abs outv

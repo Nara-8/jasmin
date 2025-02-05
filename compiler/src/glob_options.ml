@@ -122,6 +122,7 @@ let set_cc cc =
 let print_strings = function
   | Compiler.Typing                      -> "typing"   , "typing"
   | Compiler.ParamsExpansion             -> "cstexp"   , "param expansion"
+  | Compiler.RemoveWint                  -> "removewint", "replace uint with words"
   | Compiler.ArrayCopy                   -> "arraycopy", "array copy"
   | Compiler.AddArrInit                  -> "addarrinit", "add array initialisation"
   | Compiler.LowerSpill                  -> "lowerspill", "lower spill/unspill instructions"

@@ -786,7 +786,7 @@ let mk_cmp_info eop vop = {
 
 let mk_op_of_c op c = op (op_kind_of_cmp c) 
 
-let mk_op_info eop vop = mk_cmp_info (mk_op_of_c eop) vop
+let mk_op_info eop vop = mk_cmp_info (mk_op_of_c (fun k -> eop (E.Op_k k))) vop
 
 let mk_cmp_info_nvec eop = {
     opi_op   = mk_cmp_kind eop (fun _ _ _ -> assert false);
@@ -875,12 +875,12 @@ let mk_test_info eop2 =
     opi_wcmp = true, cmp_8_256;
     opi_vcmp = Some (cmp_8_64); }
 
-let eq_info  = mk_test_info (fun c -> E.Oeq (op_kind_of_cmp c))
-let neq_info = mk_test_info (fun c -> E.Oneq (op_kind_of_cmp c))
-let lt_info  = mk_test_info (fun c -> E.Olt c)
-let le_info  = mk_test_info (fun c -> E.Ole c)
-let gt_info  = mk_test_info (fun c -> E.Ogt c)
-let ge_info  = mk_test_info (fun c -> E.Oge c)
+let eq_info  = mk_test_info (fun c -> E.Oeq (E.Op_k (op_kind_of_cmp c)))
+let neq_info = mk_test_info (fun c -> E.Oneq (E.Op_k (op_kind_of_cmp c)))
+let lt_info  = mk_test_info (fun c -> E.Olt (E.Cmp_k c))
+let le_info  = mk_test_info (fun c -> E.Ole (E.Cmp_k c))
+let gt_info  = mk_test_info (fun c -> E.Ogt (E.Cmp_k c))
+let ge_info  = mk_test_info (fun c -> E.Oge (E.Cmp_k c))
 
 let op2_of_ty exn op castop ty (info:E.sop2 op_info) = 
   let tok = op_info exn (`Op2 op) castop ty info.opi_wcmp info.opi_vcmp in
