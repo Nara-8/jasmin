@@ -74,11 +74,11 @@ Notation vtmpi := (mk_var_i (to_var RAX)).
 Notation vtmp2i := (mk_var_i (to_var R10)).
 
 Definition x86_allocate_stack_frame (rspi: var_i) (tmp: option var_i) (sz: Z) :=
-  let p := Fapp2 (Osub (Op_w Uptr)) (Fvar rspi) (fconst Uptr sz) in
+  let p := Fapp2 (Osub (op_w Uptr)) (Fvar rspi) (fconst Uptr sz) in
   [:: ([:: LLvar rspi ], Ox86 (LEA Uptr), [:: Rexpr p ])].
 
 Definition x86_free_stack_frame (rspi: var_i) (tmp: option var_i) (sz: Z) :=
-  let p := Fapp2 (Oadd (Op_w Uptr)) (Fvar rspi) (fconst Uptr sz) in
+  let p := Fapp2 (Oadd (op_w Uptr)) (Fvar rspi) (fconst Uptr sz) in
   [:: ([:: LLvar rspi ], Ox86 (LEA Uptr), [:: Rexpr p ])].
 
 (* TODO: consider using VMOVDQA when the address is known to be aligned *)

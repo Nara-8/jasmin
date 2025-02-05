@@ -99,15 +99,15 @@ Definition lower_condition_Papp2
   let%opt _ := chk_ws_reg ws in
   let cmp := (CMP, pexpr_of_cf cf vi (fresh_flags fv), [:: e0; e1 ]) in
   match op with
-  | Oeq (Op_w _) =>
+  | Oeq (Op_k (Op_w _)) =>
       let zf_var := {| v_var := fvZF fv; v_info := vi |} in
       let eZF := Pvar (mk_lvar zf_var) in
       Some (if lower_TST e0 e1 is Some es then (TST, eZF, es) else cmp)
-  | Oneq (Op_w _)
-  | Olt (Cmp_w _ _)
-  | Ole (Cmp_w _ _)
-  | Ogt (Cmp_w _ _)
-  | Oge (Cmp_w _ _)
+  | Oneq (Op_k (Op_w _))
+  | Olt (Cmp_k (Cmp_w _ _))
+  | Ole (Cmp_k (Cmp_w _ _))
+  | Ogt (Cmp_k (Cmp_w _ _))
+  | Oge (Cmp_k (Cmp_w _ _))
       => Some cmp
   | _ => None
   end.
@@ -213,7 +213,7 @@ Definition lower_Papp1 (ws : wsize) (op : sop1) (e : pexpr) : low_expr :=
   end.
 
 Definition is_mul (e: pexpr) : option (pexpr * pexpr) :=
-  if e is Papp2 (Omul (Op_w U32)) x y then Some (x, y) else None.
+  if e is Papp2 (Omul (Op_k (Op_w U32))) x y then Some (x, y) else None.
 
 Definition is_rsb (ws : wsize) (e0 e1: pexpr) :=
   match get_arg_shift ws [:: e0 ], get_arg_shift ws [:: e1 ], is_wconst ws e0 with
@@ -227,16 +227,16 @@ Definition lower_Papp2_op
   option (arm_mnemonic * pexpr * pexprs) :=
   let%opt _ := chk_ws_reg ws in
   match op with
-  | Oadd (Op_w _) =>
+  | Oadd (Op_k (Op_w _)) =>
       if is_mul e0 is Some (x, y)
       then Some (MLA, x, [:: y; e1 ])
       else if is_mul e1 is Some (x, y)
       then Some (MLA, x, [:: y; e0 ])
       else
       Some (ADD, e0, [:: e1 ])
-  | Omul (Op_w _) =>
+  | Omul (Op_k (Op_w _)) =>
       Some (MUL, e0, [:: e1 ])
-  | Osub (Op_w _) =>
+  | Osub (Op_k (Op_w _)) =>
       if is_mul e1 is Some (x, y)
       then Some (MLS, x, [:: y; e0 ])
       else

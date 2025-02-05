@@ -410,8 +410,8 @@ Context
   {asmop : asmOp asm_op}
 .
 
-Definition mul := Papp2 (Omul (Op_w Uptr)).
-Definition add := Papp2 (Oadd (Op_w Uptr)).
+Definition mul := Papp2 (Omul (op_w Uptr)).
+Definition add := Papp2 (Oadd (op_w Uptr)).
 
 Definition mk_ofs aa ws e1 ofs :=
   let sz := mk_scale aa ws in

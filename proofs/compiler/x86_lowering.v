@@ -274,7 +274,7 @@ Definition lower_cassgn_classify ty e x : lower_cassgn_t :=
 
   | Papp2 op a b =>
     match op with
-    | Oadd (Op_w sz) =>
+    | Oadd (Op_k (Op_w sz)) =>
       k8 sz
       match is_lea sz x e with
       | Some l => LowerLea sz l
@@ -285,7 +285,7 @@ Definition lower_cassgn_classify ty e x : lower_cassgn_t :=
         | AddNone  => LowerFopn sz (Ox86 (ADD sz)) [:: a ; b ] (Some U32)
         end
       end
-    | Osub (Op_w sz) =>
+    | Osub (Op_k (Op_w sz)) =>
       k8 sz
       match is_lea sz x e with
       | Some l => LowerLea sz l
@@ -296,7 +296,7 @@ Definition lower_cassgn_classify ty e x : lower_cassgn_t :=
         | SubNone => LowerFopn sz (Ox86 (SUB sz)) [:: a ; b ] (Some U32)
         end
       end
-    | Omul (Op_w sz) =>
+    | Omul (Op_k (Op_w sz)) =>
       k16 sz
       match is_lea sz x e with
       | Some l => LowerLea sz l
@@ -454,8 +454,8 @@ Definition lower_cassgn (ii:instr_info) (x: lval) (tg: assgn_tag) (ty: stype) (e
     let o := oapp Plvar (@wconst sz 0) o in
     let lea tt :=
       let ii := warning ii Use_lea in
-      let add := Papp2 (Oadd (Op_w sz)) in
-      let mul := Papp2 (Omul (Op_w sz)) in
+      let add := Papp2 (Oadd (op_w sz)) in
+      let mul := Papp2 (Omul (op_w sz)) in
       let e := add de (add b (mul sce o)) in
       [:: MkI ii (Copn [::x] tg (Ox86 (LEA sz)) [:: e])] in
     if options.(use_lea) then lea tt

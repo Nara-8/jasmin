@@ -1341,6 +1341,8 @@ Proof.
     match goal with
     | |- cmp_kind -> _ => case=> /=
     | |- op_kind -> _ => case=> /=
+    | |- op_kind_ui -> _ => case=> /=; [ | case => /=]
+    | |- cmp_kind_ui -> _ => case=> /=; [ | case => /=]
     | _ => idtac end => > -> > -> ? /=; (move=> -> || case=> ->) => /= ->.
 Qed.
 

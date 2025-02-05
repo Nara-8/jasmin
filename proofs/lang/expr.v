@@ -24,9 +24,23 @@ Variant cmp_kind :=
   | Cmp_int
   | Cmp_w of signedness & wsize.
 
+Variant cmp_kind_ui :=
+  | Cmp_ui of wsize
+  | Cmp_k of cmp_kind.
+
+Definition cmp_w s w := Cmp_k (Cmp_w s w).
+Definition cmp_int := Cmp_k Cmp_int.
+
 Variant op_kind :=
   | Op_int
   | Op_w of wsize.
+
+Variant op_kind_ui :=
+  | Op_ui of wsize
+  | Op_k of op_kind.
+
+Definition op_w w := Op_k (Op_w w).
+Definition op_int := Op_k Op_int.
 
 Variant sop1 :=
 | Oword_of_int of wsize     (* int → word *)
@@ -43,27 +57,27 @@ Variant sop2 :=
 | Oand                        (* const : sbool -> sbool -> sbool *)
 | Oor                         (* const : sbool -> sbool -> sbool *)
 
-| Oadd  of op_kind
-| Omul  of op_kind
-| Osub  of op_kind
+| Oadd  of op_kind_ui
+| Omul  of op_kind_ui
+| Osub  of op_kind_ui
 | Odiv  of cmp_kind
 | Omod  of cmp_kind
 
 | Oland of wsize
 | Olor  of wsize
 | Olxor of wsize
-| Olsr  of wsize 
+| Olsr  of wsize
 | Olsl  of op_kind
 | Oasr  of op_kind
 | Oror  of wsize
 | Orol  of wsize
 
-| Oeq   of op_kind
-| Oneq  of op_kind
-| Olt   of cmp_kind
-| Ole   of cmp_kind
-| Ogt   of cmp_kind
-| Oge   of cmp_kind
+| Oeq   of op_kind_ui
+| Oneq  of op_kind_ui
+| Olt   of cmp_kind_ui
+| Ole   of cmp_kind_ui
+| Ogt   of cmp_kind_ui
+| Oge   of cmp_kind_ui
 
 (* vector operation *)
 | Ovadd of velem & wsize (* VPADD   *)
@@ -76,7 +90,7 @@ Variant sop2 :=
 
 (* N-ary operators *)
 Variant combine_flags :=
-| CF_LT    of signedness   (* Alias : signed => L  ; unsigned => B   *) 
+| CF_LT    of signedness   (* Alias : signed => L  ; unsigned => B   *)
 | CF_LE    of signedness   (* Alias : signed => LE ; unsigned => BE  *)
 | CF_EQ                    (* Alias : E                              *)
 | CF_NEQ                   (* Alias : !E                             *)
@@ -139,29 +153,37 @@ Definition type_of_op1 (o: sop1) : stype * stype :=
 Definition type_of_op2 (o: sop2) : stype * stype * stype :=
   match o with
   | Obeq | Oand | Oor => (sbool, sbool, sbool)
-  | Oadd Op_int
-  | Omul Op_int
-  | Osub Op_int
+  | Oadd (Op_k Op_int)
+  | Omul (Op_k Op_int)
+  | Osub (Op_k Op_int)
   | Odiv Cmp_int | Omod Cmp_int
   | Olsl Op_int | Oasr Op_int
     => (sint, sint, sint)
-  | Oadd (Op_w s)
-  | Omul (Op_w s)
-  | Osub (Op_w s)
+  | Oadd (Op_k (Op_w s))
+  | Omul (Op_k (Op_w s))
+  | Osub (Op_k (Op_w s))
   | Odiv (Cmp_w _ s) | Omod (Cmp_w _ s)
   | Oland s | Olor s | Olxor s | Ovadd _ s | Ovsub _ s | Ovmul _ s
     => let t := sword s in (t, t, t)
+  | Oadd (Op_ui s)
+  | Omul (Op_ui s)
+  | Osub (Op_ui s) => let t := sword s in (t, t, t)
+
   | Olsr s | Olsl (Op_w s) | Oasr (Op_w s) | Oror s | Orol s
     => let t := sword s in (t, sword8, t)
   | Ovlsr _ s | Ovlsl _ s | Ovasr _ s
     => let t := sword s in (t, sword128, t)
-  | Oeq Op_int | Oneq Op_int
-  | Olt Cmp_int | Ole Cmp_int
-  | Ogt Cmp_int | Oge Cmp_int
+  | Oeq (Op_k Op_int) | Oneq (Op_k Op_int)
+  | Olt (Cmp_k Cmp_int) | Ole (Cmp_k Cmp_int)
+  | Ogt (Cmp_k Cmp_int) | Oge (Cmp_k Cmp_int)
     => (sint, sint, sbool)
-  | Oeq (Op_w s) | Oneq (Op_w s)
-  | Olt (Cmp_w _ s) | Ole (Cmp_w _ s)
-  | Ogt (Cmp_w _ s) | Oge (Cmp_w _ s)
+  | Oeq (Op_k (Op_w s)) | Oneq (Op_k (Op_w s))
+  | Olt (Cmp_k (Cmp_w _ s)) | Ole (Cmp_k (Cmp_w _ s))
+  | Ogt (Cmp_k (Cmp_w _ s)) | Oge (Cmp_k (Cmp_w _ s))
+    => let t := sword s in (t, t, sbool)
+  | Oeq (Op_ui s) | Oneq (Op_ui s)
+  | Olt (Cmp_ui s) | Ole (Cmp_ui s)
+  | Ogt (Cmp_ui s) | Oge (Cmp_ui s)
     => let t := sword s in (t, t, sbool)
   end.
 
@@ -174,7 +196,7 @@ Definition type_of_opN (op: opN) : seq stype * stype :=
   | Opack ws p =>
     let n := nat_of_wsize ws %/ nat_of_pelem p in
     (nseq n sint, sword ws)
-  | Ocombine_flags c => (tin_combine_flags, sbool) 
+  | Ocombine_flags c => (tin_combine_flags, sbool)
   end.
 
 (* ** Expressions
@@ -208,8 +230,8 @@ Definition mk_var_i (x : var) :=
 Notation vid ident :=
   (mk_var_i {| vtype := sword Uptr; vname := ident%string; |}).
 
-Variant v_scope := 
-  | Slocal 
+Variant v_scope :=
+  | Slocal
   | Sglob.
 
 Scheme Equality for v_scope.
@@ -254,12 +276,12 @@ Definition eneq e1 e2 := enot (eeq e1 e2).
 
 Definition cf_of_condition (op : sop2) : option (combine_flags * wsize) :=
   match op with
-  | Oeq (Op_w ws) => Some (CF_EQ, ws)
-  | Oneq (Op_w ws) => Some (CF_NEQ, ws)
-  | Olt (Cmp_w s ws) => Some (CF_LT s, ws)
-  | Ole (Cmp_w s ws) => Some (CF_LE s, ws)
-  | Ogt (Cmp_w s ws) => Some (CF_GT s, ws)
-  | Oge (Cmp_w s ws) => Some (CF_GE s, ws)
+  | Oeq  (Op_k (Op_w ws)) => Some (CF_EQ, ws)
+  | Oneq (Op_k (Op_w ws)) => Some (CF_NEQ, ws)
+  | Olt  (Cmp_k (Cmp_w s ws)) => Some (CF_LT s, ws)
+  | Ole  (Cmp_k (Cmp_w s ws)) => Some (CF_LE s, ws)
+  | Ogt  (Cmp_k (Cmp_w s ws)) => Some (CF_GT s, ws)
+  | Oge  (Cmp_k (Cmp_w s ws)) => Some (CF_GE s, ws)
   | _ => None
   end.
 
@@ -376,7 +398,7 @@ Context `{asmop:asmOp}.
 Inductive instr_r :=
 | Cassgn   : lval -> assgn_tag -> stype -> pexpr -> instr_r
 | Copn     : lvals -> assgn_tag -> sopn -> pexprs -> instr_r
-| Csyscall : lvals -> syscall_t -> pexprs -> instr_r 
+| Csyscall : lvals -> syscall_t -> pexprs -> instr_r
 | Cif      : pexpr -> seq instr -> seq instr  -> instr_r
 | Cfor     : var_i -> range -> seq instr -> instr_r
 | Cwhile   : align -> seq instr -> pexpr -> instr_info -> seq instr -> instr_r
@@ -500,7 +522,7 @@ Section ASM_OP.
 Context {pd: PointerData}.
 Context `{asmop:asmOp}.
 
-(* ** Programs before stack/memory allocation 
+(* ** Programs before stack/memory allocation
  * -------------------------------------------------------------------- *)
 
 Definition progUnit : progT :=
@@ -521,7 +543,7 @@ Definition _ufun_decls :=  seq (_fun_decl unit).
 Definition _uprog      := _prog unit unit.
 Definition to_uprog (p:_uprog) : uprog := p.
 
-(* ** Programs after stack/memory allocation 
+(* ** Programs after stack/memory allocation
  * -------------------------------------------------------------------- *)
 
 Variant saved_stack :=
@@ -689,18 +711,18 @@ Definition is_array_init e :=
 
 Fixpoint cast_w ws (e: pexpr) : pexpr :=
   match e with
-  | Papp2 (Oadd Op_int) e1 e2 =>
+  | Papp2 (Oadd (Op_k Op_int)) e1 e2 =>
       let: e1 := cast_w ws e1 in
       let: e2 := cast_w ws e2 in
-      Papp2 (Oadd (Op_w ws)) e1 e2
-  | Papp2 (Osub Op_int) e1 e2 =>
+      Papp2 (Oadd (op_w ws)) e1 e2
+  | Papp2 (Osub (Op_k Op_int)) e1 e2 =>
       let: e1 := cast_w ws e1 in
       let: e2 := cast_w ws e2 in
-      Papp2 (Osub (Op_w ws)) e1 e2
-  | Papp2 (Omul Op_int) e1 e2 =>
+      Papp2 (Osub (op_w ws)) e1 e2
+  | Papp2 (Omul (Op_k Op_int)) e1 e2 =>
       let: e1 := cast_w ws e1 in
       let: e2 := cast_w ws e2 in
-      Papp2 (Omul (Op_w ws)) e1 e2
+      Papp2 (Omul (op_w ws)) e1 e2
   | Papp1 (Oneg Op_int) e' =>
       let: e' := cast_w ws e' in
       Papp1 (Oneg (Op_w ws)) e'
@@ -764,7 +786,7 @@ Fixpoint write_i_rec s (i:instr_r) :=
   match i with
   | Cassgn x _ _ _  => vrv_rec s x
   | Copn xs _ _ _   => vrvs_rec s xs
-  | Csyscall xs _ _ => vrvs_rec s xs 
+  | Csyscall xs _ _ => vrvs_rec s xs
   | Cif   _ c1 c2   => foldl write_I_rec (foldl write_I_rec s c2) c1
   | Cfor  x _ c     => foldl write_I_rec (Sv.add x s) c
   | Cwhile _ c _ _ c' => foldl write_I_rec (foldl write_I_rec s c') c
@@ -799,7 +821,7 @@ Fixpoint use_mem (e : pexpr) :=
 (* ** Compute read variables
  * -------------------------------------------------------------------- *)
 
-Definition read_gvar (x:gvar) := 
+Definition read_gvar (x:gvar) :=
   if is_lvar x then Sv.singleton x.(gv)
   else Sv.empty.
 
@@ -894,7 +916,7 @@ End ASM_OP.
 (* --------------------------------------------------------------------- *)
 (* Test the equality of two expressions modulo variable info             *)
 
-Definition eq_gvar x x' := 
+Definition eq_gvar x x' :=
   (x.(gs) == x'.(gs)) && (v_var x.(gv) == v_var x'.(gv)).
 
 Fixpoint eq_expr e e' :=
@@ -915,7 +937,7 @@ Fixpoint eq_expr e e' :=
   end.
 
 (* ------------------------------------------------------------------- *)
-Definition to_lvals (l:seq var) : seq lval := 
+Definition to_lvals (l:seq var) : seq lval :=
   map (fun x => Lvar (mk_var_i x)) l.
 
 (* ------------------------------------------------------------------- *)

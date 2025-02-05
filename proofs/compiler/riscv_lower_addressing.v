@@ -60,7 +60,7 @@ Definition is_one_Pload es :=
 
 (* Lmem and Pload cases are almost identical, so we factorize both cases. *)
 Definition compute_addr x e :=
-  let%opt lea := mk_lea Uptr (Papp2 (Oadd (Op_w Uptr)) (Pvar (mk_lvar x)) e) in
+  let%opt lea := mk_lea Uptr (Papp2 (Oadd (op_w Uptr)) (Pvar (mk_lvar x)) e) in
   let%opt base := lea.(lea_base) in
   let%opt off := lea.(lea_offset) in
   if tmp == base :> var then None

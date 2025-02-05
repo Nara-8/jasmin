@@ -25,7 +25,7 @@ Definition zlsl (x i : Z) : Z :=
   if (0 <=? i)%Z then (x * 2^i)%Z
   else (x / 2^(-i))%Z.
 
-Definition zasr (x i : Z) : Z := 
+Definition zasr (x i : Z) : Z :=
   zlsl x (-i).
 
 Definition sem_shift (shift:forall {s}, word s -> Z -> word s) s (v:word s) (i:u8) :=
@@ -57,6 +57,11 @@ Definition signed {A:Type} (fu fs:A) s :=
   | Signed => fs
   end.
 
+Definition mk_sem_ui sz o (w1 w2 : word sz) : exec (word sz) :=
+  let z := o (wunsigned w1) (wunsigned w2) in
+  if Z.leb 0 z && Z.leb z (wmax_unsigned sz) then ok (wrepr sz z)
+  else Error ErrArith.
+
 Definition mk_sem_divmod sz o (w1 w2: word sz) : exec (word sz) :=
   if ((w2 == 0) || ((wsigned w1 == wmin_signed sz) && (w2 == -1)))%R then Error ErrArith
   else ok (o w1 w2).
@@ -72,12 +77,15 @@ Definition sem_sop2_typed (o: sop2) :
   | Oand => mk_sem_sop2 andb
   | Oor  => mk_sem_sop2 orb
 
-  | Oadd Op_int      => mk_sem_sop2 Z.add
-  | Oadd (Op_w s)    => mk_sem_sop2 +%R
-  | Omul Op_int      => mk_sem_sop2 Z.mul
-  | Omul (Op_w s)    => mk_sem_sop2 *%R
-  | Osub Op_int      => mk_sem_sop2 Z.sub
-  | Osub (Op_w s)    => mk_sem_sop2 (fun x y =>  x - y)%R
+  | Oadd (Op_k Op_int)      => mk_sem_sop2 Z.add
+  | Oadd (Op_k (Op_w s))    => mk_sem_sop2 +%R
+  | Oadd (Op_ui s)          => mk_sem_ui Z.add
+  | Omul (Op_k Op_int)      => mk_sem_sop2 Z.mul
+  | Omul (Op_k (Op_w s))    => mk_sem_sop2 *%R
+  | Omul (Op_ui s)          => mk_sem_ui Z.mul
+  | Osub (Op_k Op_int)      => mk_sem_sop2 Z.sub
+  | Osub (Op_k (Op_w s))    => mk_sem_sop2 (fun x y =>  x - y)%R
+  | Osub (Op_ui s)          => mk_sem_ui Z.sub
   | Odiv Cmp_int     => mk_sem_sop2 Z.div
   | Odiv (Cmp_w u s) => @mk_sem_divmod s (signed wdiv wdivi u)
   | Omod Cmp_int     => mk_sem_sop2 Z.modulo
@@ -87,28 +95,37 @@ Definition sem_sop2_typed (o: sop2) :
   | Olor  s       => mk_sem_sop2 wor
   | Olxor s       => mk_sem_sop2 wxor
   | Olsr s        => mk_sem_sop2 sem_shr
-  | Olsl Op_int   => mk_sem_sop2 zlsl 
+  | Olsl Op_int   => mk_sem_sop2 zlsl
   | Olsl (Op_w s) => mk_sem_sop2 sem_shl
-  | Oasr Op_int   => mk_sem_sop2 zasr 
+  | Oasr Op_int   => mk_sem_sop2 zasr
   | Oasr (Op_w s) => mk_sem_sop2 sem_sar
   | Oror s        => mk_sem_sop2 sem_ror
   | Orol s        => mk_sem_sop2 sem_rol
- 
-  | Oeq Op_int    => mk_sem_sop2 Z.eqb
-  | Oeq (Op_w s)  => mk_sem_sop2 eq_op
-  | Oneq Op_int   => mk_sem_sop2 (fun x y => negb (Z.eqb x y))
-  | Oneq (Op_w s) => mk_sem_sop2 (fun x y => (x != y))
+
+  | Oeq (Op_k Op_int)    => mk_sem_sop2 Z.eqb
+  | Oeq (Op_k (Op_w s))  => mk_sem_sop2 eq_op
+  | Oeq (Op_ui s)  => mk_sem_sop2 eq_op
+
+  | Oneq (Op_k Op_int)   => mk_sem_sop2 (fun x y => negb (Z.eqb x y))
+  | Oneq (Op_k (Op_w s)) => mk_sem_sop2 (fun x y => (x != y))
+  | Oneq (Op_ui s) => mk_sem_sop2 (fun x y => (x != y))
 
   (* Fixme use the "new" Z *)
-  | Olt Cmp_int   => mk_sem_sop2 Z.ltb
-  | Ole Cmp_int   => mk_sem_sop2 Z.leb
-  | Ogt Cmp_int   => mk_sem_sop2 Z.gtb
-  | Oge Cmp_int   => mk_sem_sop2 Z.geb
+  | Olt (Cmp_k Cmp_int)   => mk_sem_sop2 Z.ltb
+  | Ole (Cmp_k Cmp_int)   => mk_sem_sop2 Z.leb
+  | Ogt (Cmp_k Cmp_int)   => mk_sem_sop2 Z.gtb
+  | Oge (Cmp_k Cmp_int)   => mk_sem_sop2 Z.geb
 
-  | Olt (Cmp_w u s) => mk_sem_sop2 (wlt u)
-  | Ole (Cmp_w u s) => mk_sem_sop2 (wle u)
-  | Ogt (Cmp_w u s) => mk_sem_sop2 (fun x y => wlt u y x)
-  | Oge (Cmp_w u s) => mk_sem_sop2 (fun x y => wle u y x)
+  | Olt (Cmp_k (Cmp_w u s)) => mk_sem_sop2 (wlt u)
+  | Ole (Cmp_k (Cmp_w u s)) => mk_sem_sop2 (wle u)
+  | Ogt (Cmp_k (Cmp_w u s)) => mk_sem_sop2 (fun x y => wlt u y x)
+  | Oge (Cmp_k (Cmp_w u s)) => mk_sem_sop2 (fun x y => wle u y x)
+
+  | Olt (Cmp_ui s) => mk_sem_sop2 (wlt Unsigned)
+  | Ole (Cmp_ui s) => mk_sem_sop2 (wle Unsigned)
+  | Ogt (Cmp_ui s) => mk_sem_sop2 (fun x y => wlt Unsigned y x)
+  | Oge (Cmp_ui s) => mk_sem_sop2 (fun x y => wle Unsigned y x)
+
   | Ovadd ve ws     => mk_sem_sop2 (sem_vadd ve)
   | Ovsub ve ws     => mk_sem_sop2 (sem_vsub ve)
   | Ovmul ve ws     => mk_sem_sop2 (sem_vmul ve)

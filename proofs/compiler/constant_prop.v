@@ -16,33 +16,33 @@ Section WITH_PARAMS.
 
 Context {fcp : FlagCombinationParams}.
 
-Definition e2bool (e:pexpr) : exec bool := 
+Definition e2bool (e:pexpr) : exec bool :=
   match e with
   | Pbool b => ok b
   | _       => type_error
   end.
 
-Definition e2int (e:pexpr) : exec Z := 
+Definition e2int (e:pexpr) : exec Z :=
   match e with
   | Pconst z => ok z
   | _        => type_error
   end.
 
-Definition e2word (sz:wsize) (e:pexpr) : exec (word sz) := 
+Definition e2word (sz:wsize) (e:pexpr) : exec (word sz) :=
   match is_wconst sz e with
   | Some w => ok w
   | None   => type_error
   end.
- 
+
 Definition of_expr (t:stype) : pexpr -> exec (sem_t t) :=
   match t return pexpr -> exec (sem_t t) with
   | sbool   => e2bool
   | sint    => e2int
-  | sarr n  => fun _ => type_error 
+  | sarr n  => fun _ => type_error
   | sword sz => e2word sz
   end.
 
-Definition to_expr (t:stype) : sem_t t -> exec pexpr := 
+Definition to_expr (t:stype) : sem_t t -> exec pexpr :=
   match t return sem_t t -> exec pexpr with
   | sbool => fun b => ok (Pbool b)
   | sint  => fun z => ok (Pconst z)
@@ -50,22 +50,22 @@ Definition to_expr (t:stype) : sem_t t -> exec pexpr :=
   | sword sz => fun w => ok (wconst w)
   end.
 
-Definition ssem_sop1 (o: sop1) (e: pexpr) : pexpr := 
-  let r := 
+Definition ssem_sop1 (o: sop1) (e: pexpr) : pexpr :=
+  let r :=
     Let x := of_expr _ e in
     to_expr (sem_sop1_typed o x) in
-  match r with 
+  match r with
   | Ok e => e
   | _ => Papp1 o e
   end.
 
-Definition ssem_sop2 (o: sop2) (e1 e2: pexpr) : pexpr := 
-  let r := 
+Definition ssem_sop2 (o: sop2) (e1 e2: pexpr) : pexpr :=
+  let r :=
     Let x1 := of_expr _ e1 in
     Let x2 := of_expr _ e2 in
     Let v  := sem_sop2_typed o x1 x2 in
-    to_expr v in 
-  match r with 
+    to_expr v in
+  match r with
   | Ok e => e
   | _ => Papp2 o e1 e2
   end.
@@ -97,17 +97,17 @@ Definition s_op1 o e :=
   | Oneg Op_int => sneg_int e
   | _           => ssem_sop1 o e
   end.
- 
+
 (* ------------------------------------------------------------------------ *)
 
-Definition sbeq e1 e2 := 
+Definition sbeq e1 e2 :=
   match is_bool e1, is_bool e2 with
   | Some b1, Some b2 => Pbool (b1 == b2)
-  | Some b, _ => if b then e2 else snot e2 
-  | _, Some b => if b then e1 else snot e1 
+  | Some b, _ => if b then e2 else snot e2
+  | _, Some b => if b then e1 else snot e1
   | _, _      => Papp2 Obeq e1 e2
   end.
-  
+
 Definition sand e1 e2 :=
   match is_bool e1, is_bool e2 with
   | Some b, _ => if b then e2 else false
@@ -128,45 +128,47 @@ Definition sadd_int e1 e2 :=
   match is_const e1, is_const e2 with
   | Some n1, Some n2 => Pconst (n1 + n2)
   | Some n, _ =>
-    if (n == 0)%Z then e2 else Papp2 (Oadd Op_int) e1 e2
+    if (n == 0)%Z then e2 else Papp2 (Oadd op_int) e1 e2
   | _, Some n =>
-    if (n == 0)%Z then e1 else Papp2 (Oadd Op_int) e1 e2
-  | _, _ => Papp2 (Oadd Op_int) e1 e2
+    if (n == 0)%Z then e1 else Papp2 (Oadd op_int) e1 e2
+  | _, _ => Papp2 (Oadd op_int) e1 e2
   end.
 
 Definition sadd_w sz e1 e2 :=
   match is_wconst sz e1, is_wconst sz e2 with
   | Some n1, Some n2 => wconst (n1 + n2)
-  | Some n, _ => if n == 0%R then e2 else Papp2 (Oadd (Op_w sz)) e1 e2
-  | _, Some n => if n == 0%R then e1 else Papp2 (Oadd (Op_w sz)) e1 e2
-  | _, _ => Papp2 (Oadd (Op_w sz)) e1 e2
+  | Some n, _ => if n == 0%R then e2 else Papp2 (Oadd (op_w sz)) e1 e2
+  | _, Some n => if n == 0%R then e1 else Papp2 (Oadd (op_w sz)) e1 e2
+  | _, _ => Papp2 (Oadd (op_w sz)) e1 e2
   end.
 
 Definition sadd ty :=
   match ty with
-  | Op_int => sadd_int
-  | Op_w sz => sadd_w sz
+  | Op_k Op_int => sadd_int
+  | Op_k (Op_w sz) => sadd_w sz
+  | Op_ui sz => Papp2 (Oadd (Op_ui sz))
   end.
 
 Definition ssub_int e1 e2 :=
   match is_const e1, is_const e2 with
   | Some n1, Some n2 => Pconst (n1 - n2)
   | _, Some n =>
-    if (n == 0)%Z then e1 else Papp2 (Osub Op_int) e1 e2
-  | _, _ => Papp2 (Osub Op_int) e1 e2
+    if (n == 0)%Z then e1 else Papp2 (Osub op_int) e1 e2
+  | _, _ => Papp2 (Osub op_int) e1 e2
   end.
 
 Definition ssub_w sz e1 e2 :=
   match is_wconst sz e1, is_wconst sz e2 with
   | Some n1, Some n2 => wconst (n1 - n2)
-  | _, Some n => if n == 0%R then e1 else Papp2 (Osub (Op_w sz)) e1 e2
-  | _, _ => Papp2 (Osub (Op_w sz)) e1 e2
+  | _, Some n => if n == 0%R then e1 else Papp2 (Osub (op_w sz)) e1 e2
+  | _, _ => Papp2 (Osub (op_w sz)) e1 e2
   end.
 
 Definition ssub ty :=
   match ty with
-  | Op_int => ssub_int
-  | Op_w sz => ssub_w sz
+  | Op_k Op_int => ssub_int
+  | Op_k (Op_w sz) => ssub_w sz
+  | Op_ui sz => Papp2 (Osub (Op_ui sz))
   end.
 
 Definition smul_int e1 e2 :=
@@ -175,12 +177,12 @@ Definition smul_int e1 e2 :=
   | Some n, _ =>
     if (n == 0)%Z then Pconst 0
     else if (n == 1)%Z then e2
-    else Papp2 (Omul Op_int) e1 e2
+    else Papp2 (Omul op_int) e1 e2
   | _, Some n =>
     if (n == 0)%Z then Pconst 0
     else if (n == 1)%Z then e1
-    else Papp2 (Omul Op_int) e1 e2
-  | _, _ => Papp2 (Omul Op_int) e1 e2
+    else Papp2 (Omul op_int) e1 e2
+  | _, _ => Papp2 (Omul op_int) e1 e2
   end.
 
 Definition smul_w sz e1 e2 :=
@@ -189,34 +191,36 @@ Definition smul_w sz e1 e2 :=
   | Some n, _ =>
     if n == 0%R then @wconst sz 0
     else if n == 1%R then e2
-    else Papp2 (Omul (Op_w sz)) (wconst n) e2
+    else Papp2 (Omul (op_w sz)) (wconst n) e2
   | _, Some n =>
     if n == 0%R then @wconst sz 0
     else if n == 1%R then e1
-    else Papp2 (Omul (Op_w sz)) e1 (wconst n)
-  | _, _ => Papp2 (Omul (Op_w sz)) e1 e2
+    else Papp2 (Omul (op_w sz)) e1 (wconst n)
+  | _, _ => Papp2 (Omul (op_w sz)) e1 e2
   end.
 
 Definition smul ty :=
   match ty with
-  | Op_int => smul_int
-  | Op_w sz => smul_w sz
+  | Op_k Op_int => smul_int
+  | Op_k (Op_w sz) => smul_w sz
+  | Op_ui sz => Papp2 (Omul (Op_ui sz))
   end.
 
 Definition s_eq ty e1 e2 :=
   if eq_expr e1 e2 then Pbool true
   else
     match ty with
-    | Op_int =>
+    | Op_k Op_int =>
       match is_const e1, is_const e2 with
       | Some i1, Some i2 => Pbool (i1 == i2)
       | _, _             => Papp2 (Oeq ty) e1 e2
       end
-    | Op_w sz =>
+    | Op_k (Op_w sz) =>
       match is_wconst sz e1, is_wconst sz e2 with
       | Some i1, Some i2 => Pbool (i1 == i2)
       | _, _             => Papp2 (Oeq ty) e1 e2
       end
+    | Op_ui _ => Papp2 (Oeq ty) e1 e2
     end.
 
 Definition sneq ty e1 e2 :=
@@ -225,15 +229,16 @@ Definition sneq ty e1 e2 :=
   | None      => Papp2 (Oneq ty) e1 e2
   end.
 
-Definition is_cmp_const (ty: cmp_kind) (e: pexpr) : option Z :=
+Definition is_cmp_const (ty: cmp_kind_ui) (e: pexpr) : option Z :=
   match ty with
-  | Cmp_int => is_const e
-  | Cmp_w sg sz =>
+  | Cmp_k Cmp_int => is_const e
+  | Cmp_k (Cmp_w sg sz) =>
     is_wconst sz e >>= λ w,
     Some match sg with
     | Signed => wsigned w
     | Unsigned => wunsigned w
     end
+  | Cmp_ui _ => None
   end%O.
 
 Definition slt ty e1 e2 :=
@@ -264,10 +269,9 @@ Definition sge ty e1 e2 :=
   | _      , _       => Papp2 (Oge ty) e1 e2
   end.
 
-
 Definition s_op2 o e1 e2 :=
   match o with
-  | Obeq    => sbeq e1 e2 
+  | Obeq    => sbeq e1 e2
   | Oand    => sand e1 e2
   | Oor     => sor  e1 e2
   | Oadd ty => sadd ty e1 e2

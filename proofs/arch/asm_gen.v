@@ -229,7 +229,7 @@ Definition addr_of_fexpr (rip: var) ii sz (e: fexpr) :=
   end.
 
 Definition addr_of_xpexpr rip ii sz v e :=
-  addr_of_fexpr rip ii sz (Fapp2 (Oadd (Op_w sz)) (Fvar v) e).
+  addr_of_fexpr rip ii sz (Fapp2 (Oadd (op_w sz)) (Fvar v) e).
 
 Definition xreg_of_var ii (x: var_i) : cexec asm_arg :=
   if to_xreg x is Some r then ok (XReg r)

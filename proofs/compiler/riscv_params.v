@@ -194,12 +194,12 @@ Definition assemble_cond_arg ii e : cexec (option register) :=
    swapped. *)
 Definition assemble_cond_app2 (o : sop2) :=
   match o with
-  | Oeq (Op_w U32) => Some (EQ, false)
-  | Oneq (Op_w U32) => Some (NE, false)
-  | Olt (Cmp_w sg U32) => Some (LT sg, false)
-  | Oge (Cmp_w sg U32) => Some (GE sg, false)
-  | Ogt (Cmp_w sg U32) => Some (LT sg, true)
-  | Ole (Cmp_w sg U32) => Some (GE sg, true)
+  | Oeq (Op_k (Op_w U32)) => Some (EQ, false)
+  | Oneq (Op_k (Op_w U32)) => Some (NE, false)
+  | Olt (Cmp_k (Cmp_w sg U32)) => Some (LT sg, false)
+  | Oge (Cmp_k (Cmp_w sg U32)) => Some (GE sg, false)
+  | Ogt (Cmp_k (Cmp_w sg U32)) => Some (LT sg, true)
+  | Ole (Cmp_k (Cmp_w sg U32)) => Some (GE sg, true)
   | _ => None
   end.
 

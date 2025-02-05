@@ -66,17 +66,17 @@ Fixpoint mk_lea_rec (sz: wsize) e :=
   | Fapp1 (Oword_of_int sz') (Fconst z) =>
       Some (lea_const (wunsigned (wrepr sz' z)))
   | Fvar  x          => Some (lea_var x)
-  | Fapp2 (Omul (Op_w sz')) e1 e2 =>
+  | Fapp2 (Omul (Op_k (Op_w sz'))) e1 e2 =>
     match mk_lea_rec sz e1, mk_lea_rec sz e2 with
     | Some l1, Some l2 => lea_mul l1 l2
     | _      , _       => None
     end
-  | Fapp2 (Oadd (Op_w sz')) e1 e2 =>
+  | Fapp2 (Oadd (Op_k (Op_w sz'))) e1 e2 =>
     match mk_lea_rec sz e1, mk_lea_rec sz e2 with
     | Some l1, Some l2 => lea_add l1 l2
     | _      , _       => None
     end
-  | Fapp2 (Osub (Op_w sz')) e1 e2 =>
+  | Fapp2 (Osub (Op_k (Op_w sz'))) e1 e2 =>
     match mk_lea_rec sz e1, mk_lea_rec sz e2 with
     | Some l1, Some l2 => lea_sub l1 l2
     | _      , _       => None

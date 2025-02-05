@@ -84,7 +84,7 @@ Definition sz_loop : lcmd :=
       ; dec_off
       ; compute_address
       ; store_zero vtemp 0
-      ; Lcond (Fapp2 (Oneq (Op_w U32)) (Fvar voff) (fconst reg_size 0)) lbl
+      ; Lcond (Fapp2 (Oneq (op_w U32)) (Fvar voff) (fconst reg_size 0)) lbl
     ]
   in
   map (MkLI dummy_instr_info) irs.
