@@ -31,6 +31,7 @@ Require Import
   propagate_inline
   slh_lowering
   remove_globals
+  remove_wint
   stack_alloc
   stack_zeroization
   tunneling
@@ -79,6 +80,7 @@ Section COMPILER.
 Variant compiler_step :=
   | Typing                      : compiler_step
   | ParamsExpansion             : compiler_step
+  | RemoveWint                  : compiler_step
   | ArrayCopy                   : compiler_step
   | AddArrInit                  : compiler_step
   | LowerSpill                  : compiler_step
@@ -113,6 +115,7 @@ Variant compiler_step :=
 Definition compiler_step_list := [::
     Typing
   ; ParamsExpansion
+  ; RemoveWint
   ; ArrayCopy
   ; AddArrInit
   ; LowerSpill
@@ -252,6 +255,9 @@ Definition inlining (to_keep: seq funname) (p: uprog) : cexec uprog :=
   ok p.
 
 Definition compiler_first_part (to_keep: seq funname) (p: prog) : cexec uprog :=
+
+  let p := remove_wint_prog p in
+  let p := cparams.(print_uprog) RemoveWint p in
 
   Let p := array_copy_prog (λ k, cparams.(fresh_var_ident) k dummy_instr_info 0) p in
   let p := cparams.(print_uprog) ArrayCopy p in

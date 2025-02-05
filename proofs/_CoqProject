@@ -110,6 +110,7 @@ compiler/riscv_stack_zeroization.v
 compiler/riscv_stack_zeroization_proof.v
 compiler/remove_globals.v
 compiler/remove_globals_proof.v
+compiler/remove_wint.v
 compiler/slh_lowering.v
 compiler/slh_lowering_proof.v
 compiler/stack_alloc.v
