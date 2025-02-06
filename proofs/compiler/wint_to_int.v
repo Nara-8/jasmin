@@ -12,9 +12,17 @@ Local Open Scope seq_scope.
 Local Open Scope Z_scope.
 
 
+Module Import E.
+
+  Definition pass : string := "wint_to_int".
+
+  Definition ierror := pp_internal_error_s pass.
+
+End E.
+
 Section WITH_PARAMS.
 
-Context `{asmop:asmOp} {pd : PointerData} {pT: progT}.
+Context {msfsz : MSFsize} `{asmop:asmOp} {pd : PointerData} {pT: progT}.
 
 Definition type_of_expr (e:pexpr) : stype :=
   match e with
@@ -114,47 +122,145 @@ Fixpoint w2i_e (e:pexpr) : pexpr :=
     else Pif ty e1 (cast_expr e2 ty) (cast_expr e3 ty)
   end.
 
-Definition remove_wint_lv (x : lval) : lval :=
+Definition w2i_lv (x : lval) :=
   match x with
-  | Lnone _ _ | Lvar _ => x
-  | Lmem al ws x e => Lmem al ws x (remove_wint_e e)
-  | Laset al aa ws x e => Laset al aa ws x (remove_wint_e e)
-  | Lasub aa ws len x e => Lasub aa ws len x (remove_wint_e e)
+  | Lnone _ _ => x
+  | Lvar x =>
+    match m x with
+    | Some xi => Lvar {|v_var := xi; v_info := v_info x|}
+    | _ => x
+    end
+  | Lmem al ws x e => Lmem al ws x (cast_expr (w2i_e e) (sword Uptr))
+  | Laset al aa ws x e => Laset al aa ws x (cast_expr (w2i_e e) sint)
+  | Lasub aa ws len x e => Lasub aa ws len x (cast_expr (w2i_e e) sint)
   end.
 
-Fixpoint remove_wint_ir (ir:instr_r) : instr_r :=
+Definition check_lv (x : lval) :=
+  match x with
+  | Lnone _ _ => true
+  | Lvar x =>
+    match m x with
+    | Some xi => false
+    | _ => true
+    end
+  | Lmem al ws x e => true
+  | Laset al aa ws x e => true
+  | Lasub aa ws len x e => true
+  end.
+
+Definition type_of_lv (x : lval) :=
+  match x with
+  | Lnone _ ty => ty
+  | Lvar x => vtype x
+  | Lmem al ws x e => sword ws
+  | Laset al aa ws x e => sword ws
+  | Lasub aa ws len x e => sarr len
+  end.
+
+Context (sigs : funname -> option (list stype * list stype)).
+
+Definition get_sig f :=
+  match sigs f with
+  | Some sig => ok sig
+  | None => Error (E.ierror "unknown function")
+  end.
+
+Fixpoint w2i_ir ii (ir:instr_r) : cexec instr_r :=
   match ir with
   | Cassgn x tag ty e =>
-    Cassgn (remove_wint_lv x) tag ty (remove_wint_e e)
+    let x := w2i_lv x in
+    let e := w2i_e e in
+    let ty := if type_of_lv x == sint then sint else ty in
+    ok (Cassgn x tag ty (cast_expr e ty))
 
   | Copn xs t o es =>
-    Copn (map remove_wint_lv xs) t o (map remove_wint_e es)
+    if all check_lv xs then
+      let xs := map w2i_lv xs in
+      let es := map w2i_e es in
+      let es := map2 cast_expr es (sopn_tin o) in
+      ok (Copn xs t o es)
+    else Error (E.ierror "bad lval in Copn") (* FIXME *)
 
   | Csyscall xs o es =>
-    Csyscall (map remove_wint_lv xs) o (map remove_wint_e es)
+    if all check_lv xs then
+      let xs := map w2i_lv xs in
+      let es := map w2i_e es in
+      let tys := scs_tin (syscall_sig_u o) in
+      let es := map2 cast_expr es tys in
+      ok (Csyscall xs o es)
+    else Error (E.ierror "bad lval in Csyscall") (* FIXME *)
 
   | Cif b c1 c2 =>
-    Cif (remove_wint_e b) (map remove_wint_i c1) (map remove_wint_i c2)
+    Let c1 := mapM w2i_i c1 in
+    Let c2 := mapM w2i_i c2 in
+    ok (Cif (w2i_e b) c1 c2)
 
   | Cfor x (dir, e1, e2) c =>
-    Cfor x (dir, remove_wint_e e1, remove_wint_e e2) (map remove_wint_i c)
+    Let c := mapM w2i_i c in
+    ok (Cfor x (dir, w2i_e e1, w2i_e e2) c)
 
   | Cwhile a c e info c' =>
-    Cwhile a (map remove_wint_i c) (remove_wint_e e) info (map remove_wint_i c')
+    Let c := mapM w2i_i c in
+    Let c' := mapM w2i_i c' in
+    ok (Cwhile a c (w2i_e e) info c')
 
   | Ccall xs f es =>
-    Ccall (map remove_wint_lv xs) f (map remove_wint_e es)
-
+    let xs := map w2i_lv xs in
+    let es := map w2i_e es in
+    Let sig := get_sig f in
+    if List.map type_of_lv xs == sig.1 then
+      ok (Ccall xs f (map2 cast_expr es sig.2))
+    else Error (E.ierror "bad lval in Ccall") (* FIXME *)
   end
 
-with remove_wint_i (i:instr) : instr :=
+with w2i_i (i:instr) : cexec instr :=
   let (ii,ir) := i in
-  MkI ii (remove_wint_ir ir).
+  Let ir := add_iinfo ii (w2i_ir ii ir) in
+  ok (MkI ii ir).
 
-Definition remove_wint_fun (f: fundef) :=
+(* FIXME *)
+
+Definition w2i_vari (x:var_i) : var_i :=
+  match m x with
+  | Some xi => {| v_var := xi; v_info := v_info x |}
+  | None => x
+  end.
+
+Definition w2i_fun (fn:funname) (f: fundef) :=
+  Let sig := add_funname fn (get_sig fn) in
   let 'MkFun ii si p c so r ev := f in
-  MkFun ii si p (map remove_wint_i c) so r ev.
+  let p := List.map w2i_vari p in
+  let r := List.map w2i_vari r in
+  Let c := add_funname fn (mapM w2i_i c) in
+  ok (MkFun ii sig.1 p c sig.2 r ev).
 
-Definition remove_wint_prog (p:prog) : prog := map_prog (remove_wint_fun ) p.
+Definition build_sig (fd : funname * fundef) :=
+ let 'MkFun ii si p c so r ev := fd.2 in
+ let mk := map2 (fun (x:var_i) ty => match m x with None => ty | Some _ => sint end) in
+ (fd.1, (mk p si, mk r so)).
+
+End Section.
+
+Context (info : var -> option var).
+
+Definition build_info (fv : Sv.t) :=
+  Let fvm :=
+    foldM (fun x (fvm: Sv.t * Mvar.t var) =>
+      match info x with
+      | None => ok fvm
+      | Some xi =>
+        Let _ := assert ((vtype xi == sint) && ~~Sv.mem xi fvm.1) (E.ierror "invalid info") in
+        ok (Sv.add xi fvm.1, Mvar.set fvm.2 x xi)
+      end)
+      (fv, Mvar.empty var)
+      (Sv.elements fv) in
+   ok (Mvar.get fvm.2).
+
+Definition remove_wint_prog (p:prog) : cexec prog :=
+  let fv := vars_p (p_funcs p) in
+  Let m := build_info fv in
+  let sigs := map (build_sig m) (p_funcs p) in
+  Let funcs := map_cfprog_name (w2i_fun m (get_fundef sigs)) (p_funcs p) in
+  ok {| p_extra := p_extra p; p_globs := p_globs p; p_funcs := funcs |}.
 
 End WITH_PARAMS.
