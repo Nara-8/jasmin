@@ -29,9 +29,6 @@ let as_seq2 = function [x1; x2] -> (x1, x2) | _ -> assert false
 let as_seq3 = function [x1; x2; x3] -> (x1, x2, x3) | _ -> assert false
 
 (* -------------------------------------------------------------------- *)
-module Option = BatOption
-
-(* -------------------------------------------------------------------- *)
 let oget ?exn (x : 'a option) =
   match x, exn with
   | None  , None     -> assert false
@@ -45,6 +42,12 @@ end
 
 (* -------------------------------------------------------------------- *)
 module ISet = BatISet
+
+(* -------------------------------------------------------------------- *)
+module Option = struct
+  include Option
+  include BatOption
+end
 
 (* -------------------------------------------------------------------- *)
 module List = struct

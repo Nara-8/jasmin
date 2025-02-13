@@ -8,8 +8,6 @@ module Mint : Map.S with type key = int
 
 module Ss   : Set.S with type elt = string
 module Ms   : Map.S with type key = string
-                         
-module Option : sig include module type of BatOption end
 
 (* -------------------------------------------------------------------- *)
 val identity : 'a -> 'a
@@ -37,6 +35,11 @@ module Uniq : sig
   val gen : unit -> int
 end
 
+(* -------------------------------------------------------------------- *)
+module Option : sig
+  include module type of Option
+  include module type of BatOption
+end
 (* -------------------------------------------------------------------- *)
 module ISet : sig
   include module type of BatISet
