@@ -3,7 +3,7 @@ open Cmdliner
 open CommonCLI
 open Utils
 
-let extract_to_file prog arch pd asmOp model amodel fnames array_dir outfile =
+let extract_to_file prog arch pd asmOp model amodel fnames array_dir comment_source outfile =
   let array_dir =
     if array_dir = None then Option.map Filename.dirname outfile else array_dir
   in
@@ -19,7 +19,7 @@ let extract_to_file prog arch pd asmOp model amodel fnames array_dir outfile =
     BatPervasives.finally
       (fun () -> close ())
       (fun () ->
-        ToEC.extract prog arch pd asmOp model amodel fnames array_dir fmt)
+        ToEC.extract prog arch pd asmOp model amodel fnames array_dir comment_source fmt)
       ()
   with e ->
     BatPervasives.ignore_exceptions
@@ -35,15 +35,15 @@ let extract_to_file prog arch pd asmOp model amodel fnames array_dir outfile =
 let parse_and_extract arch call_conv =
   let module A = (val get_arch_module arch call_conv) in
 
-  let extract model amodel functions array_dir output pass file =
+  let extract model amodel functions array_dir output pass comment_source file =
     let prog = parse_and_compile (module A) pass file in
 
-    extract_to_file prog arch A.reg_size A.asmOp model amodel functions
-      array_dir output
+    extract_to_file
+      prog arch A.reg_size A.asmOp model amodel functions array_dir comment_source output
   in
-  fun model amodel functions array_dir output pass file warn ->
+  fun model amodel functions array_dir output pass file warn comment_source ->
     if not warn then nowarning ();
-    match extract model amodel functions array_dir output pass file with
+    match extract model amodel functions array_dir output pass comment_source file with
     | () -> ()
     | exception HiError e ->
         Format.eprintf "%a@." pp_hierror e;
@@ -107,6 +107,10 @@ let file =
   let doc = "The Jasmin source file to extract" in
   Arg.(required & pos 0 (some non_dir_file) None & info [] ~docv:"JAZZ" ~doc)
 
+let comment_source =
+  let doc = "Add comments with jasmin instruction in extracted code" in
+  Arg.(value & flag & info [ "comment-source" ] ~doc)
+
 let () =
   let doc = "Extract Jasmin program to easycrypt" in
   let man =
@@ -123,5 +127,5 @@ let () =
   Cmd.v info
     Term.(
       const parse_and_extract $ arch $ call_conv $ model $ array_model
-      $ functions $ array_dir $ output $ after_pass $ file $ warn)
+      $ functions $ array_dir $ output $ after_pass $ file $ warn $ comment_source)
   |> Cmd.eval |> exit
