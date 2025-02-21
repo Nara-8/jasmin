@@ -11,12 +11,6 @@ From mathcomp Require Import word_ssrZ.
 
 Local Open Scope Z_scope.
 
-Lemma eq_axiom_of_scheme X (beq : X -> X -> bool) :
-  (forall x y : X, beq x y -> x = y) ->
-  (forall x y : X, x = y -> beq x y) ->
-  Equality.axiom beq.
-Proof. move=> hbl hlb x y. apply: (iffP idP); first exact: hbl. exact: hlb. Qed.
-
 (* -------------------------------------------------------------------- *)
 Module FinIsCount.
 Section FinIsCount.
