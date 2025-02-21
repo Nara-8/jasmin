@@ -143,7 +143,7 @@ Module CEDecStype.
     | sword w1 =>
       match t2 as t0 return {sword w1 = t0} + {True} with
       | sword w2 =>
-        match Bool.reflect_dec _ _ (wsize_eqb_OK w1 w2) with
+        match wsize_eq_dec w1 w2 with
         | left eqw => left (f_equal sword eqw)
         | right _ => right I
         end
@@ -167,7 +167,7 @@ Module CEDecStype.
     + case: pos_dec (@pos_dec_r n n' I) => [Heq _ | [] neq ] //=.
       move => _; apply/eqP => -[].
       by move/eqP: (neq erefl).
-    case: Bool.reflect_dec => // eqw.
+    case: wsize_eq_dec => // eqw.
     by move=> _;apply /eqP;congruence.
   Qed.
 

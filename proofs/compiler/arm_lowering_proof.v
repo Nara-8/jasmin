@@ -550,16 +550,13 @@ Proof.
       by rewrite /exec_sopn /= truncate_word_le // /= zero_extend_u.
     done.
 
-  apply: rbindP => wbase'.
-  apply: rbindP => vbase hgetx hbase.
-  apply: rbindP => woff'.
-  apply: rbindP => voff hseme hoff.
-  apply: rbindP => wres hread /= /ok_word_inj [? hw]; subst ws''.
+  t_xrbindP=> wbase' vbase hgetx hbase woff' voff hseme hoff wres hread ? hw;
+    subst ws''.
   move: hbase => /to_wordI [ws0 [wbase [? /truncate_wordP [hws0 ?]]]];
     subst wbase' vbase.
   move: hoff => /to_wordI [ws1 [woff [? /truncate_wordP [hws1 ?]]]];
     subst woff' voff.
-  move: hw => /= ?; subst wres.
+  move: hw => [?]; subst wres.
 
   split; last done.
   clear hfve.
@@ -1124,17 +1121,13 @@ Proof.
   case: b hw hwrite12' => hw hwrite12'.
   - move: hexeces.
     rewrite /exec_sopn /=.
-    case: ves => [// | ? []]; last by t_xrbindP.
-    apply: rbindP => v /=.
-    apply: rbindP => _ -> [->] /ok_inj /(f_equal (head (Vbool true))) /= /Vword_inj [?]; subst ws''.
-    move=> /= ?; subst v.
+    case: ves => [// | ? []]; t_xrbindP=> //= v _ -> /= [->] ?; subst ws''.
+    move=> [?]; subst v.
     by rewrite truncate_word_le.
   move: hexeces.
   rewrite /exec_sopn /=.
-  case: ves => [// | ? []]; last by t_xrbindP.
-  apply: rbindP => v /=.
-  apply: rbindP => _ -> [->] /ok_inj /(f_equal (head (Vbool true))) /= /Vword_inj [?]; subst ws''.
-  move=> /= ?; subst v.
+  case: ves => [// | ? []]; t_xrbindP=> //= v _ -> /= [->] ?; subst ws''.
+  move=> [?]; subst v.
   by rewrite truncate_word_le.
 Qed.
 
