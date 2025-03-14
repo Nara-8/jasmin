@@ -74,6 +74,7 @@ Separate Extraction
   arm_instr_decl
   arm_extra
   arm_params
-  compiler.
+  compiler
+  safety_cond.
 
 Cd  "../..".
