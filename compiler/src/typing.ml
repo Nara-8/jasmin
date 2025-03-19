@@ -120,6 +120,9 @@ let rec ty_expr pd loc (e:expr) =
     if not (subtype tin1 tout) && not (subtype tin2 tout) then
       error loc "invalid big op type";
     tout
+  | Pis_var_init x -> tbool
+  | Pis_arr_init _ -> tbool
+  | Pis_mem_init _ -> tbool
 
 and check_expr pd loc e ty = 
   let te = ty_expr pd loc e in

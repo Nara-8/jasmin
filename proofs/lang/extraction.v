@@ -75,6 +75,7 @@ Separate Extraction
   arm_extra
   arm_params
   compiler
-  safety_cond.
+  safety_cond
+  remove_is_var_init.
 
 Cd  "../..".

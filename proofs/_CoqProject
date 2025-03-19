@@ -90,6 +90,7 @@ compiler/remove_assert.v
 compiler/remove_assert_proof.v
 compiler/remove_globals.v
 compiler/remove_globals_proof.v
+compiler/remove_is_var_init.v
 compiler/slh_lowering.v
 compiler/slh_lowering_proof.v
 compiler/stack_alloc.v

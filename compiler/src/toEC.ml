@@ -366,7 +366,7 @@ let int_of_word ws e =
 
 let rec leaks_e_rec pd leaks e =
   match e with
-  | Pconst _ | Pbool _ | Parr_init _ |Pvar _ |Pis_var_init _ -> leaks
+  | Pconst _ | Pbool _ | Parr_init _ |Pvar _ -> leaks
   | Pload (_,_,x,e) -> leaks_e_rec pd (int_of_word pd (snd (add_ptr pd (gkvar x) e)) :: leaks) e
   | Pget (_,_,_,_, e) | Psub (_,_,_,_,e) -> leaks_e_rec pd (e::leaks) e
   | Papp1 (_, e) -> leaks_e_rec pd leaks e
@@ -375,8 +375,9 @@ let rec leaks_e_rec pd leaks e =
   | Pif  (_, e1, e2, e3) -> leaks_e_rec pd (leaks_e_rec pd (leaks_e_rec pd leaks e1) e2) e3
   | Pbig (e, _, _, e1, e2, ei) ->
     leaks_e_rec pd (leaks_e_rec pd (leaks_e_rec pd (leaks_e_rec pd leaks e1) e2) ei) e
-  | Pis_arr_init(_,e) -> leaks_e_rec pd (e::leaks) e
-  | Pis_mem_init(e) -> leaks_e_rec pd (e::leaks) e
+  | Pis_arr_init(_,e1,e2) -> leaks_e_rec pd (leaks_e_rec pd (e::leaks) e1) e2
+  | Pis_mem_init(e1,e2) -> leaks_e_rec pd (leaks_e_rec pd (e::leaks) e1) e2
+  |Pis_var_init _ -> assert false
 
 and leaks_es_rec pd leaks es = List.fold_left (leaks_e_rec pd) leaks es
 
@@ -784,9 +785,9 @@ let ty_expr = function
   | PappN (op, _)  -> out_ty_opN op
   | Pif (ty,_,_,_) -> ty
   | Pbig (_, op, _, _, _, _) -> out_ty_op2 op
-  | Pis_var_init x -> x.L.pl_desc.v_ty
-  | Pis_arr_init (x,_) -> tu U8
-  | Pis_mem_init _ -> tu U8
+  | Pis_var_init x -> assert false
+  | Pis_arr_init (x,e1,e2) -> tbool
+  | Pis_mem_init (e1,e2) -> tbool
 
 let check_array env x =
   match (L.unloc x).v_ty with
@@ -998,9 +999,9 @@ module Exp = struct
       let iota = Eapp (ec_ident "iota_", [a; b]) in
       let map = Eapp (ec_ident "map", [lambda2;iota]) in
       Eapp (ec_ident "foldr", [lambda1;i; map])
-    | Pis_var_init x -> Eapp (ec_ident "var_init",[ec_vari env (L.unloc x)])
-    | Pis_arr_init (x,e) -> Eapp (ec_ident "arr_init",[ec_vari env (L.unloc x); toec_expr env e] )
-    | Pis_mem_init e -> Eapp (ec_ident "mem_init", [toec_expr env e])
+    | Pis_var_init x -> assert false
+    | Pis_arr_init (x,e1,e2) -> Eapp (ec_ident "arr_init",[ec_vari env (L.unloc x); toec_expr env e1; toec_expr env e2] )
+    | Pis_mem_init (e1,e2) -> Eapp (ec_ident "mem_init", [toec_expr env e1; toec_expr env e2])
 end
 
 open Ec
