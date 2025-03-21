@@ -61,7 +61,9 @@ Definition Oarm_add_large_imm_instr {tabstract : Tabstract} : instruction_desc :
    ; conflicts := [:: (APout 0, APin 0)]
    ; semi   := semi
    ; semu   := @values.vuincl_app_sopn_v _ [:: ty; ty] [:: ty] semi refl_equal
-   ; i_safe := [::] |}.
+   ; i_safe := [::]
+   ; i_init := [:: IBool true]
+    |}.
 
 Definition smart_li_instr {tabstract : Tabstract} (ws : wsize) : instruction_desc :=
   mk_instr_desc
@@ -69,7 +71,7 @@ Definition smart_li_instr {tabstract : Tabstract} (ws : wsize) : instruction_des
     [:: sword ws ] [:: E 0 ]
     [:: sword ws ] [:: E 1 ]
     (fun x => ok x)
-    [::].
+    [::] [:: IBool true].
 
 Definition smart_li_instr_cc {tabstract : Tabstract} (ws : wsize) : instruction_desc :=
   mk_instr_desc
@@ -77,7 +79,7 @@ Definition smart_li_instr_cc {tabstract : Tabstract} (ws : wsize) : instruction_
     [:: sword ws; sbool; sword ws ] [:: E 0; E 2; E 1 ]
     [:: sword ws ] [:: E 1 ]
     (fun x b y => ok (if b then x else y))
-    [::].
+    [::] [:: IBool true].
 
 Definition get_instr_desc {tabstract : Tabstract} (o: arm_extra_op) : instruction_desc :=
   match o with

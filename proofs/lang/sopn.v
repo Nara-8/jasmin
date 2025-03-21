@@ -44,6 +44,7 @@ Record instruction_desc := mkInstruction {
                 app_sopn_v semi vs = ok v ->
                 exists2 v', app_sopn_v semi vs' = ok v' & List.Forall2 value_uincl v v';
   i_safe   : seq safe_cond;
+  i_init   : seq init_cond;
 }.
 
 Arguments semu _ [vs vs' v] _ _.
@@ -78,7 +79,7 @@ Definition asm_op_t {asm_op} {asmop : asmOp asm_op} := asm_op.
 
 End SOPN.
 
-Notation mk_instr_desc str tin i_in tout i_out semi safe :=
+Notation mk_instr_desc str tin i_in tout i_out semi safe init :=
   {| str      := str;
      tin      := tin;
      i_in     := i_in;
@@ -88,6 +89,7 @@ Notation mk_instr_desc str tin i_in tout i_out semi safe :=
      semi     := semi;
      semu     := @vuincl_app_sopn_v _ tin tout semi refl_equal;
      i_safe   := safe;
+     i_init   := init;
   |}.
 
 Section WITH_PARAMS.
@@ -149,6 +151,7 @@ Definition Ocopy_instr ws p :=
      semi     := @WArray.copy ws p;
      semu     := @vuincl_copy _ ws p;
      i_safe   := [:: AllInit ws p 0];
+     i_init  := [:: IBool true];
   |}.
 
 Definition Onop_instr := 
@@ -156,7 +159,7 @@ Definition Onop_instr :=
            [::] [::]
            [::] [::]
            (ok tt)
-           [::].
+           [::] [::].
 
 Definition Omulu_instr sz :=
   mk_instr_desc (pp_sz "mulu" sz)
@@ -164,7 +167,7 @@ Definition Omulu_instr sz :=
            [:: E 0; E 1] (* this info is irrelevant *)
            [:: sword sz; sword sz]
            [:: E 2; E 3] (* this info is irrelevant *)
-           (fun x y => ok (@wumul sz x y)) [::].
+           (fun x y => ok (@wumul sz x y)) [::] [:: IBool true; IBool true].
  
 Definition Oaddcarry_instr sz :=
   mk_instr_desc (pp_sz "adc" sz)
@@ -173,7 +176,7 @@ Definition Oaddcarry_instr sz :=
            [:: sbool; sword sz]
            [:: E 3; E 4]      (* this info is irrelevant *)
            (fun x y c => let p := @waddcarry sz x y c in ok (Some p.1, p.2))
-           [::].
+           [::] [:: IBool true; IBool true].
 
 Definition Osubcarry_instr sz := 
   mk_instr_desc (pp_sz "sbb" sz)
@@ -182,7 +185,7 @@ Definition Osubcarry_instr sz :=
            [:: sbool; sword sz]
            [:: E 3; E 4]      (* this info is irrelevant *)
            (fun x y c => let p := @wsubcarry sz x y c in ok (Some p.1, p.2))
-           [::].
+           [::] [:: IBool true; IBool true].
 
 Fixpoint spill_semi (tys: seq stype) : sem_prod tys (exec (sem_tuple [::])):= 
   match tys as tys0 return sem_prod tys0 (exec (sem_tuple [::])) with
@@ -213,6 +216,7 @@ Definition Ospill_instr o tys :=
      semi     := spill_semi tys;
      semu     := @spill_semu tys; 
      i_safe   := [:: ];
+     i_init   := [:: ];
   |}.
 
 Definition Oswap_instr ty := 
@@ -225,6 +229,7 @@ Definition Oswap_instr ty :=
      semi   := @swap_semi _ ty;
      semu   := @swap_semu _ ty;
      i_safe := [::];
+     i_init := [:: IBool true; IBool true];
   |}.
 
 Definition pseudo_op_get_instr_desc (o : pseudo_operator) : instruction_desc :=
@@ -268,7 +273,7 @@ Definition SLHinit_instr :=
       [:: ty_msf ]
       [:: E 0 ]      (* this info is irrelevant *)
       se_init_sem
-      [::].
+      [::] [:: IBool true].
 
 Definition SLHupdate_str := "update_msf"%string.
 Definition SLHupdate_instr :=
@@ -278,7 +283,7 @@ Definition SLHupdate_instr :=
       [:: ty_msf ]
       [:: E 2 ]      (* this info is irrelevant *)
       se_update_sem
-      [::].
+      [::] [:: IBool true].
 
 Definition SLHmove_str := "mov_msf"%string.
 Definition SLHmove_instr :=
@@ -288,7 +293,7 @@ Definition SLHmove_instr :=
       [:: ty_msf ]
       [:: E 1 ]      (* this info is irrelevant *)
       se_move_sem
-      [::].
+      [::] [:: IBool true].
 
 Definition SLHprotect_str := "protect"%string.
 Definition SLHprotect_instr ws :=
@@ -298,7 +303,7 @@ Definition SLHprotect_instr ws :=
       [:: sword ws ]
       [:: E 2 ]      (* this info is irrelevant *)
       (@se_protect_sem ws)
-      [::].
+      [::] [:: IBool true].
 
 Lemma protect_ptr_semu p vs vs' v:
   List.Forall2 value_uincl vs vs' ->
@@ -325,6 +330,7 @@ Definition SLHprotect_ptr_instr p :=
      semi     := @se_protect_ptr_sem p;
      semu     := @protect_ptr_semu p;
      i_safe   := [::];
+     i_init   := [:: IBool true];
   |}.
 
 Lemma protect_ptr_fail_semu p vs vs' v:
@@ -352,6 +358,7 @@ Definition SLHprotect_ptr_fail_instr p :=
      semi     := @se_protect_ptr_fail_sem p;
      semu     := @protect_ptr_fail_semu p;
      i_safe   := [::];
+     i_init   := [:: IBool true];
   |}.
 
 Definition slh_op_instruction_desc  (o : slh_op) : instruction_desc :=

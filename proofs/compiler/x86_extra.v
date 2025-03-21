@@ -89,26 +89,27 @@ Definition Oset0_instr sz  :=
              (let vf := Some false in
               let vt := Some true in
               ok (::vf, vf, vf, vt, vt & (0%R: word sz)))
-             [::]
+             [::] [:: IBool true; IBool true; IBool true; IBool true; IBool true; IBool true]
   else 
     mk_instr_desc (pp_sz "set0" sz)
              [::] [::]  
              (w_ty sz) [::E 0] 
-             (ok (0%R: word sz)) [::].
+             (ok (0%R: word sz)) [::]
+             [:: IBool true].
 
 Definition Oconcat128_instr := 
   mk_instr_desc (pp_s "concat_2u128") 
            [:: sword128; sword128 ] [:: E 1; E 2] 
            [:: sword256] [:: E 0] 
            (λ h l : u128, ok (make_vec U256 [::l;h]))
-           [::].
+           [::] [:: IBool true].
 
 Definition Ox86MOVZX32_instr := 
   mk_instr_desc (pp_s "MOVZX32") 
            [:: sword32] [:: E 1] 
            [:: sword64] [:: E 0] 
            (λ x : u32, ok (zero_extend U64 x)) 
-           [::].
+           [::] [:: IBool true].
 
 Definition x86_MULX sz (v1 v2: word sz) : ex_tpl (w2_ty sz sz) :=
   Let _ := check_size_32_64 sz in
@@ -119,7 +120,7 @@ Definition Ox86MULX_instr sz :=
    mk_instr_desc (pp_sz name sz)
         (w2_ty sz sz) [::ADImplicit (to_var RDX); E 2]
         (w2_ty sz sz) [:: E 0; E 1] (* hi, lo *)
-        (@x86_MULX sz) [::].
+        (@x86_MULX sz) [::] [:: IBool true; IBool true].
 
 Definition x86_MULX_hi sz (v1 v2: word sz) : ex_tpl (w_ty sz) :=
   Let _ := check_size_32_64 sz in
@@ -130,7 +131,7 @@ Definition Ox86MULX_hi_instr sz :=
    mk_instr_desc (pp_sz name sz)
         (w2_ty sz sz) [::ADImplicit (to_var RDX); E 1]
         (w_ty sz) [:: E 0] 
-        (@x86_MULX_hi sz) [::].
+        (@x86_MULX_hi sz) [::] [:: IBool true].
 
 
 Definition Ox86SLHinit_str := append "Ox86_" SLHinit_str.
@@ -141,7 +142,8 @@ Definition Ox86SLHinit_instr :=
       [:: ty_msf ]
       [:: E 0 ]
       se_init_sem
-      [::].
+      [::]
+      [:: IBool true].
 
 Definition x86_se_update_sem (b:bool) (w: wmsf) : exec (wmsf * wmsf) :=
   let aux :=  wrepr Uptr (-1) in
@@ -156,7 +158,8 @@ Definition Ox86SLHupdate_instr :=
                 [:: ty_msf; ty_msf]
                 [:: E 2; E 1]
                 x86_se_update_sem
-                [::].
+                [::]
+                [:: IBool true; IBool true].
 
 Definition Ox86SLHmove_str := append "Ox86_" SLHmove_str.
 Definition Ox86SLHmove_instr :=
@@ -166,7 +169,8 @@ Definition Ox86SLHmove_instr :=
       [:: ty_msf ]
       [:: E 0 ]
       se_move_sem
-      [::].
+      [::]
+      [:: IBool true].
 
 Definition se_protect_small_sem
   (ws:wsize) (w:word ws) (msf:word ws) : exec (sem_tuple (b5w_ty ws)) :=
@@ -190,6 +194,7 @@ Definition Ox86SLHprotect_instr :=
                   out
                   (@se_protect_small_sem ws)
                   [::]
+                  [:: IBool true; IBool true; IBool true; IBool true; IBool true; IBool true]
    else
      mk_instr_desc (pp_sz SLHprotect_str ws)
                   [:: sword ws; ty_msf]
@@ -197,7 +202,8 @@ Definition Ox86SLHprotect_instr :=
                   [:: sword ws; sword ws]
                   [:: E 2; E 0]
                   (@se_protect_large_sem ws)
-                  [::].
+                  [::]
+                  [:: IBool true; IBool true].
 
 Definition get_instr_desc o :=
   match o with

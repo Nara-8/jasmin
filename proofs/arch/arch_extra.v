@@ -308,7 +308,9 @@ Definition get_instr_desc (o: extended_op) : instruction_desc :=
     ; tout     := id.(id_tout)
     ; semi     := id.(id_semi)
     ; semu     := @vuincl_app_sopn_v _ _ _ id.(id_semi) id.(id_tin_narr)
-    ; i_safe   := id.(id_safe) |}
+    ; i_safe   := id.(id_safe) 
+    ; i_init  := id.(id_init) 
+    |}
  | ExtOp o => asm_op_instr o
  end.
 

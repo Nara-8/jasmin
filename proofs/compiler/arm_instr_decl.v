@@ -519,6 +519,7 @@ Definition mk_cond (idt : instr_desc_t) : instr_desc_t :=
     id_check_dest := id_check_dest idt;
     id_str_jas := id_str_jas idt;
     id_safe := id_safe idt;
+    id_init := id_init idt;
     id_pp_asm := id_pp_asm idt;
   |}.
 Arguments mk_cond : clear implicits.
@@ -618,6 +619,7 @@ Definition mk_shifted
     id_check_dest := id_check_dest idt;
     id_str_jas := id_str_jas idt;
     id_safe := id_safe idt;
+    id_init := id_init idt;
     id_pp_asm := id_pp_asm idt;
   |}.
 Arguments mk_shifted : clear implicits.
@@ -692,6 +694,7 @@ Definition arm_ADD_instr : instr_desc_t :=
       id_check_dest := refl_equal;
       id_str_jas := pp_s (string_of_arm_mnemonic mn);
       id_safe := [::]; (* TODO_ARM: Complete. *)
+      id_init := [:: IBool true; IBool true; IBool true; IBool true; IBool true];
       id_pp_asm := pp_arm_op mn opts;
     |}
   in
@@ -734,6 +737,7 @@ Definition arm_ADC_instr : instr_desc_t :=
       id_check_dest := refl_equal;
       id_str_jas := pp_s (string_of_arm_mnemonic mn);
       id_safe := [::]; (* TODO_ARM: Complete. *)
+      id_init := [:: IBool true; IBool true; IBool true; IBool true; IBool true];
       id_pp_asm := pp_arm_op mn opts;
     |}
   in
@@ -771,6 +775,7 @@ Definition arm_MUL_instr : instr_desc_t :=
       id_check_dest := refl_equal;
       id_str_jas := pp_s (string_of_arm_mnemonic mn);
       id_safe := [::]; (* TODO_ARM: Complete. *)
+      id_init := [:: IBool true; IBool true; IBool true];
       id_pp_asm := pp_arm_op mn opts;
     |}
   in
@@ -800,6 +805,7 @@ Definition arm_MLA_instr : instr_desc_t :=
       id_check_dest := refl_equal;
       id_str_jas := pp_s (string_of_arm_mnemonic mn);
       id_safe := [::]; (* TODO_ARM: Complete. *)
+      id_init := [:: IBool true];
       id_pp_asm := pp_arm_op mn opts;
   |}.
 
@@ -825,6 +831,7 @@ Definition arm_MLS_instr : instr_desc_t :=
       id_check_dest := refl_equal;
       id_str_jas := pp_s (string_of_arm_mnemonic mn);
       id_safe := [::]; (* TODO_ARM: Complete. *)
+      id_init := [:: IBool true];
       id_pp_asm := pp_arm_op mn opts;
   |}.
 
@@ -850,6 +857,7 @@ Definition arm_SDIV_instr : instr_desc_t :=
     id_check_dest := refl_equal;
     id_str_jas := pp_s (string_of_arm_mnemonic mn);
     id_safe := [::]; (* TODO_ARM: Complete. *)
+    id_init := [:: IBool true];
     id_pp_asm := pp_arm_op mn opts;
   |}.
 
@@ -883,6 +891,7 @@ Definition arm_SUB_instr : instr_desc_t :=
       id_tout_nabst := refl_equal;
       id_str_jas := pp_s (string_of_arm_mnemonic mn);
       id_safe := [::]; (* TODO_ARM: Complete. *)
+      id_init := [:: IBool true; IBool true; IBool true; IBool true; IBool true];
       id_pp_asm := pp_arm_op mn opts;
     |}
   in
@@ -915,6 +924,7 @@ Definition arm_RSB_instr : instr_desc_t :=
       id_tout_nabst := refl_equal;
       id_check_dest := refl_equal;
       id_str_jas := pp_s (string_of_arm_mnemonic mn);
+      id_init := [:: IBool true; IBool true; IBool true; IBool true; IBool true];
       id_safe := [::]; (* TODO_ARM: Complete. *)
       id_pp_asm := pp_arm_op mn opts;
     |}
@@ -950,6 +960,7 @@ Definition arm_UDIV_instr : instr_desc_t :=
     id_check_dest := refl_equal;
     id_str_jas := pp_s (string_of_arm_mnemonic mn);
     id_safe := [::]; (* TODO_ARM: Complete. *)
+    id_init := [:: IBool true];
     id_pp_asm := pp_arm_op mn opts;
   |}.
 
@@ -975,6 +986,7 @@ Definition arm_UMULL_instr : instr_desc_t :=
     id_check_dest := refl_equal;
     id_str_jas := pp_s (string_of_arm_mnemonic mn);
     id_safe := [::]; (* TODO_ARM: Complete. *)
+    id_init := [:: IBool true; IBool true];
     id_pp_asm := pp_arm_op mn opts;
   |}.
 
@@ -1001,6 +1013,7 @@ Definition arm_UMAAL_instr : instr_desc_t :=
     id_check_dest := refl_equal;
     id_str_jas := pp_s (string_of_arm_mnemonic mn);
     id_safe := [::]; (* TODO_ARM: Complete. *)
+    id_init := [:: IBool true; IBool true];
     id_pp_asm := pp_arm_op mn opts;
   |}.
 
@@ -1027,6 +1040,7 @@ Definition arm_UMLAL_instr : instr_desc_t :=
     id_check_dest := refl_equal;
     id_str_jas := pp_s (string_of_arm_mnemonic mn);
     id_safe := [::]; (* TODO_ARM: Complete. *)
+    id_init := [:: IBool true; IBool true];
     id_pp_asm := pp_arm_op mn opts;
   |}.
 
@@ -1052,6 +1066,7 @@ Definition arm_SMULL_instr : instr_desc_t :=
     id_check_dest := refl_equal;
     id_str_jas := pp_s (string_of_arm_mnemonic mn);
     id_safe := [::]; (* TODO_ARM: Complete. *)
+    id_init := [:: IBool true; IBool true];
     id_pp_asm := pp_arm_op mn opts;
   |}.
 
@@ -1079,6 +1094,7 @@ Definition arm_SMLAL_instr : instr_desc_t :=
     id_check_dest := refl_equal;
     id_str_jas := pp_s (string_of_arm_mnemonic mn);
     id_safe := [::]; (* TODO_ARM: Complete. *)
+    id_init := [:: IBool true; IBool true];
     id_pp_asm := pp_arm_op mn opts;
   |}.
 
@@ -1104,6 +1120,7 @@ Definition arm_SMMUL_instr : instr_desc_t :=
     id_check_dest := refl_equal;
     id_str_jas := pp_s (string_of_arm_mnemonic mn);
     id_safe := [::]; (* TODO_ARM: Complete. *)
+    id_init := [:: IBool true];
     id_pp_asm := pp_arm_op mn opts;
   |}.
 
@@ -1130,6 +1147,7 @@ Definition arm_SMMULR_instr : instr_desc_t :=
     id_check_dest := refl_equal;
     id_str_jas := pp_s (string_of_arm_mnemonic mn);
     id_safe := [::]; (* TODO_ARM: Complete. *)
+    id_init := [:: IBool true];
     id_pp_asm := pp_arm_op mn opts;
   |}.
 
@@ -1163,6 +1181,7 @@ Definition arm_smul_hw_instr hwn hwm : instr_desc_t :=
     id_check_dest := refl_equal;
     id_str_jas := pp_s (string_of_arm_mnemonic mn);
     id_safe := [::];
+    id_init := [:: IBool true];
     id_pp_asm := pp_arm_op mn opts;
   |}.
 
@@ -1192,6 +1211,7 @@ Definition arm_smla_hw_instr hwn hwm : instr_desc_t :=
     id_check_dest := refl_equal;
     id_str_jas := pp_s (string_of_arm_mnemonic mn);
     id_safe := [::];
+    id_init := [:: IBool true];
     id_pp_asm := pp_arm_op mn opts;
   |}.
 
@@ -1220,6 +1240,7 @@ Definition arm_smulw_hw_instr hw : instr_desc_t :=
     id_check_dest := refl_equal;
     id_str_jas := pp_s (string_of_arm_mnemonic mn);
     id_safe := [::];
+    id_init := [:: IBool true];
     id_pp_asm := pp_arm_op mn opts;
   |}.
 
@@ -1256,6 +1277,7 @@ Definition arm_AND_instr : instr_desc_t :=
       id_check_dest := refl_equal;
       id_str_jas := pp_s (string_of_arm_mnemonic mn);
       id_safe := [::]; (* TODO_ARM: Complete. *)
+      id_init := [:: IBool true; IBool true; IBool false; IBool true];
       id_pp_asm := pp_arm_op mn opts;
     |}
   in
@@ -1301,6 +1323,7 @@ Definition arm_BFC_instr : instr_desc_t :=
     id_check_dest := refl_equal;
     id_str_jas := pp_s (string_of_arm_mnemonic mn);
     id_safe := [::];
+    id_init := [:: IBool true];
     id_pp_asm := pp_arm_op mn opts;
   |}.
 
@@ -1337,6 +1360,7 @@ Definition arm_BFI_instr : instr_desc_t :=
     id_check_dest := refl_equal;
     id_str_jas := pp_s (string_of_arm_mnemonic mn);
     id_safe := [::];
+    id_init := [:: IBool true];
     id_pp_asm := pp_arm_op mn opts;
   |}.
 
@@ -1360,6 +1384,7 @@ Definition arm_BIC_instr : instr_desc_t :=
       id_check_dest := refl_equal;
       id_str_jas := pp_s (string_of_arm_mnemonic mn);
       id_safe := [::]; (* TODO_ARM: Complete. *)
+      id_init := [:: IBool true; IBool true; IBool false; IBool true];
       id_pp_asm := pp_arm_op mn opts;
     |}
   in
@@ -1392,6 +1417,7 @@ Definition arm_EOR_instr : instr_desc_t :=
       id_check_dest := refl_equal;
       id_str_jas := pp_s (string_of_arm_mnemonic mn);
       id_safe := [::]; (* TODO_ARM: Complete. *)
+      id_init := [:: IBool true; IBool true; IBool false; IBool true];
       id_pp_asm := pp_arm_op mn opts;
     |}
   in
@@ -1432,6 +1458,7 @@ Definition arm_MVN_instr : instr_desc_t :=
       id_check_dest := refl_equal;
       id_str_jas := pp_s (string_of_arm_mnemonic mn);
       id_safe := [::]; (* TODO_ARM: Complete. *)
+      id_init := [:: IBool true; IBool true; IBool false; IBool true];
       id_pp_asm := pp_arm_op mn opts;
     |}
   in
@@ -1464,6 +1491,7 @@ Definition arm_ORR_instr : instr_desc_t :=
       id_check_dest := refl_equal;
       id_str_jas := pp_s (string_of_arm_mnemonic mn);
       id_safe := [::]; (* TODO_ARM: Complete. *)
+      id_init := [:: IBool true; IBool true; IBool false; IBool true];
       id_pp_asm := pp_arm_op mn opts;
     |}
   in
@@ -1509,6 +1537,7 @@ Definition arm_ASR_instr : instr_desc_t :=
       id_check_dest := refl_equal;
       id_str_jas := pp_s (string_of_arm_mnemonic mn);
       id_safe := [::]; (* TODO_ARM: Complete. *)
+      id_init := [:: IBool true; IBool true; IBool true; IBool true];
       id_pp_asm := pp_arm_op mn opts;
     |}
   in
@@ -1545,6 +1574,7 @@ Definition arm_LSL_instr : instr_desc_t :=
       id_check_dest := refl_equal;
       id_str_jas := pp_s (string_of_arm_mnemonic mn);
       id_safe := [::]; (* TODO_ARM: Complete. *)
+      id_init := [:: IBool true; IBool true; IBool true; IBool true];
       id_pp_asm := pp_arm_op mn opts;
     |}
   in
@@ -1581,6 +1611,7 @@ Definition arm_LSR_instr : instr_desc_t :=
       id_check_dest := refl_equal;
       id_str_jas := pp_s (string_of_arm_mnemonic mn);
       id_safe := [::]; (* TODO_ARM: Complete. *)
+      id_init := [:: IBool true; IBool true; IBool true; IBool true];
       id_pp_asm := pp_arm_op mn opts;
     |}
   in
@@ -1617,6 +1648,7 @@ Definition arm_ROR_instr : instr_desc_t :=
       id_check_dest := refl_equal;
       id_str_jas := pp_s (string_of_arm_mnemonic mn);
       id_safe := [::]; (* TODO_ARM: Complete. *)
+      id_init := [:: IBool true; IBool true; IBool true; IBool true];
       id_pp_asm := pp_arm_op mn opts;
     |}
   in
@@ -1641,6 +1673,7 @@ Definition mk_rev_instr mn semi :=
    ; id_check_dest := refl_equal
    ; id_str_jas := pp_s (string_of_arm_mnemonic mn)
    ; id_safe := [::]
+   ; id_init := [:: IBool true]
    ; id_pp_asm := pp_arm_op mn opts
   |}.
 
@@ -1679,6 +1712,7 @@ Definition arm_ADR_instr : instr_desc_t :=
     id_check_dest := refl_equal;
     id_str_jas := pp_s (string_of_arm_mnemonic mn);
     id_safe := [::]; (* TODO_ARM: Complete. *)
+    id_init := [:: IBool true];
     id_pp_asm := pp_arm_op mn opts;
   |}.
 
@@ -1705,6 +1739,7 @@ Definition arm_MOV_instr : instr_desc_t :=
       id_check_dest := refl_equal;
       id_str_jas := pp_s (string_of_arm_mnemonic mn);
       id_safe := [::]; (* TODO_ARM: Complete. *)
+      id_init := [:: IBool true; IBool true; IBool false; IBool true];
       id_pp_asm := pp_arm_op mn opts;
     |}
   in
@@ -1736,6 +1771,7 @@ Definition arm_MOVT_instr : instr_desc_t :=
     id_check_dest := refl_equal;
     id_str_jas := pp_s (string_of_arm_mnemonic mn);
     id_safe := [::]; (* TODO_ARM: Complete. *)
+    id_init := [:: IBool true];
     id_pp_asm := pp_arm_op mn opts;
   |}.
 
@@ -1767,6 +1803,7 @@ Definition arm_UBFX_instr : instr_desc_t :=
     id_check_dest := refl_equal;
     id_str_jas := pp_s (string_of_arm_mnemonic mn);
     id_safe := [::]; (* TODO_ARM: Complete. *)
+    id_init := [:: IBool true];
     id_pp_asm := pp_arm_op mn opts;
   |}.
 
@@ -1796,6 +1833,7 @@ Definition arm_UXTB_instr : instr_desc_t :=
     id_check_dest := refl_equal;
     id_str_jas := pp_s (string_of_arm_mnemonic mn);
     id_safe := [::]; (* TODO_ARM: Complete. *)
+    id_init := [:: IBool true];
     id_pp_asm := pp_arm_op mn opts;
   |}.
 
@@ -1819,6 +1857,7 @@ Definition arm_UXTH_instr : instr_desc_t :=
     id_check_dest := refl_equal;
     id_str_jas := pp_s (string_of_arm_mnemonic mn);
     id_safe := [::]; (* TODO_ARM: Complete. *)
+    id_init := [:: IBool true];
     id_pp_asm := pp_arm_op mn opts;
   |}.
 
@@ -1844,6 +1883,7 @@ Definition arm_SBFX_instr : instr_desc_t :=
     id_check_dest := refl_equal;
     id_str_jas := pp_s (string_of_arm_mnemonic mn);
     id_safe := [::]; (* TODO_ARM: Complete. *)
+    id_init := [:: IBool true];
     id_pp_asm := pp_arm_op mn opts;
   |}.
 
@@ -1877,6 +1917,7 @@ Definition arm_CMP_instr : instr_desc_t :=
       id_check_dest := refl_equal;
       id_str_jas := pp_s (string_of_arm_mnemonic mn);
       id_safe := [::]; (* TODO_ARM: Complete. *)
+      id_init := [:: IBool true; IBool true; IBool true; IBool true];
       id_pp_asm := pp_arm_op mn opts;
     |}
   in
@@ -1912,6 +1953,7 @@ Definition arm_TST_instr : instr_desc_t :=
       id_check_dest := refl_equal;
       id_str_jas := pp_s (string_of_arm_mnemonic mn);
       id_safe := [::]; (* TODO_ARM: Complete. *)
+      id_init := [:: IBool true; IBool true; IBool true];
       id_pp_asm := pp_arm_op mn opts;
     |}
   in
@@ -1939,6 +1981,7 @@ Definition arm_CMN_instr : instr_desc_t :=
       id_check_dest := refl_equal;
       id_str_jas := pp_s (string_of_arm_mnemonic mn);
       id_safe := [::];
+      id_init := [:: IBool true; IBool true; IBool true; IBool true];
       id_pp_asm := pp_arm_op mn opts;
     |}
   in
@@ -1974,6 +2017,7 @@ Definition arm_load_instr mn : instr_desc_t :=
     id_check_dest := refl_equal;
     id_str_jas := pp_s (string_of_arm_mnemonic mn);
     id_safe := [::]; (* TODO_ARM: Complete. *)
+    id_init := [:: IBool true];
     id_pp_asm := pp_arm_op mn opts;
   |}.
 
@@ -2002,6 +2046,7 @@ Definition arm_store_instr mn : instr_desc_t :=
     id_check_dest := refl_equal;
     id_str_jas := pp_s (string_of_arm_mnemonic mn);
     id_safe := [::]; (* TODO_ARM: Complete. *)
+    id_init := [:: IBool true];
     id_pp_asm := pp_arm_op mn opts;
   |}.
 
@@ -2024,6 +2069,7 @@ Definition arm_CLZ_instr :=
     id_check_dest := refl_equal;
     id_str_jas := pp_s (string_of_arm_mnemonic mn);
     id_safe := [::];
+    id_init := [:: IBool true];
     id_pp_asm := pp_arm_op mn opts;
   |}.
 
