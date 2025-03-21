@@ -35,6 +35,7 @@ module type Core_arch = sig
 
   val pp_asm : Format.formatter -> (reg, regx, xreg, rflag, cond, asm_op) Arch_decl.asm_prog -> unit
 
+  val pp_asm_v2 : Format.formatter -> (reg, regx, xreg, rflag, cond, asm_op) Arch_decl.asm_prog -> unit
   val callstyle : reg callstyle
 
   val known_implicits : (Name.t * string) list

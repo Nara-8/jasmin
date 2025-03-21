@@ -37,6 +37,8 @@ module X86_core = struct
   let not_saved_stack = (X86_params.x86_liparams atoI).lip_not_saved_stack
 
   let pp_asm = Ppasm.pp_prog
+
+  let pp_asm_v2 fmt asm = Asm_utils.pp_asm fmt (Pp_asm_v2.asm_of_prog asm)
   let callstyle = Arch_full.StackDirect
 
   let known_implicits = ["OF","_of_"; "CF", "_cf_"; "SF", "_sf_"; "ZF", "_zf_"]

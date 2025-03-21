@@ -243,20 +243,16 @@ module IntelSyntax : X86AsmSyntax = struct
     if Option.is_none base && Option.is_none off then
       Z.to_string disp
     else 
-      begin
-        let disp = if Z.equal disp Z.zero then None else Some disp in
-        let disp = Option.map_default Z.to_string "" disp in
-        let base = Option.map_default (string_of_register ~reg_prefix`U64) "" base in
-        let off  = Option.map (string_of_register ~reg_prefix `U64) off in
-    
-        match off, scal with
-        | None, _ ->
-            Format.asprintf "%s(%s)" disp base
-        | Some off, O ->
-            Format.asprintf "%s(%s,%s)" disp base off
-        | Some off, _ ->
-            Format.asprintf "%s(%s,%s,%s)" disp base off (pp_scale scal)
-      end
+      let disp = if Z.equal disp Z.zero then None else Some disp in
+      let disp = Option.map Z.to_string disp in
+      let base = Option.map (string_of_register ~reg_prefix `U64) base in
+      let off  = Option.map (string_of_register ~reg_prefix `U64) off in
+      let off = 
+        match off with
+        | Some so when scal <> O -> Some (Format.asprintf "%s * %s" so (pp_scale scal))
+        | _ -> off in
+      String.concat " + " (List.pmap (fun x -> x) [base; off; disp])
+  
 
     let pp_address_size (ws:wsize) = 
       match ws with
@@ -300,9 +296,8 @@ end
 module ATTSyntax : X86AsmSyntax = struct
 
   let style = `ATT
-
-  let reg_prefix = "$"
-  let imm_prefix = "%"
+  let reg_prefix = "%"
+  let imm_prefix = "$"
   let indirect_prefix = "*"
 
   (* -------------------------------------------------------------------- *)
@@ -351,9 +346,6 @@ module ATTSyntax : X86AsmSyntax = struct
 
   let asm_syntax = Header(".att_syntax", [])
 end 
-
-
-
 
 module X86AsmTranslate (AsmSyntax: X86AsmSyntax) = struct
 
@@ -433,7 +425,10 @@ module X86AsmTranslate (AsmSyntax: X86AsmSyntax) = struct
       [Instr(name, (string_of_asm_args pp.pp_aop_args))]
   
   let asm_debug_info ({Location.base_loc = ii; _}, _) =
-    [Dwarf (DebugInfo.source_positions ii)]
+    if !Glob_options.dwarf then
+      [Dwarf (DebugInfo.source_positions ii)]
+    else
+      []
 
   let asm_instr name instr = 
     let Arch_decl.({ asmi_i = i; asmi_ii = ii}) = instr in

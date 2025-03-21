@@ -239,7 +239,7 @@ let main () =
       if !outfile <> "" then begin
         BatFile.with_file_out !outfile (fun out ->
           let fmt = BatFormat.formatter_of_out_channel out in
-          Format.fprintf fmt "%a%!" Arch.pp_asm asm);
+          Format.fprintf fmt "%a%!" Arch.pp_asm_v2 asm);
           if !debug then Format.eprintf "assembly listing written@."
       end else if List.mem Compiler.Assembly !print_list then
           Format.printf "%a%!" Arch.pp_asm asm
