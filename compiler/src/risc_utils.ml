@@ -3,15 +3,7 @@ open Arch_decl
 open Utils
 open Prog
 open Var0
-
-let global_datas_label = "glob_data"
-
-let string_of_label name p = Printf.sprintf "L%s$%d" (escape name) (Conv.int_of_pos p)
-
-let pp_label n lbl = string_of_label n lbl
-
-let pp_remote_label (fn, lbl) =
-  string_of_label fn.fn_name lbl
+open Asm_utils
 
 let hash_to_string (to_string : 'a -> string) =
   let tbl = Hashtbl.create 17 in
@@ -50,11 +42,3 @@ let pp_address arch arch_name pp_reg_address_aux addr =
   match addr with
   | Areg ra -> pp_reg_address arch arch_name pp_reg_address_aux ra
   | Arip r -> pp_rip_address r 
-
-let pp_syscall (o : _ Syscall_t.syscall_t) =
-  match o with
-  | Syscall_t.RandomBytes _ -> "__jasmin_syscall_randombytes__"
-
-  let mangle x = Printf.sprintf "_%s" x
-
-  let pp_brace s = Format.sprintf "{%s}" s

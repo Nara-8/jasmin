@@ -8,6 +8,7 @@ open Prog
 open Var0
 open Asm_printer
 open Risc_utils
+open Asm_utils
 
 (* Architecture imports*)
 open Riscv_decl
@@ -181,7 +182,7 @@ let pp_funcs funs = List.concat_map pp_fun funs
 let pp_data globs =
   if not (List.is_empty globs) then
     Instr (".p2align", ["5"]) ::
-    Label Risc_utils.global_datas_label :: List.map (fun b -> Byte (Z.to_string (Conv.z_of_int8 b))) globs
+    Label global_datas_label :: List.map (fun b -> Byte (Z.to_string (Conv.z_of_int8 b))) globs
   else []
 
 let pp_prog p =

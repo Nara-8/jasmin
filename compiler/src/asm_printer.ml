@@ -59,13 +59,6 @@ let pp_asm fmt asm =
 let mangle x = "_" ^ x
 let escape = PrintCommon.escape
 
-let string_of_label name p = Printf.sprintf "L%s$%d" (escape name) (Conv.int_of_pos p)
-
-let pp_label n lbl = string_of_label n lbl
-
-let pp_remote_label (fn, lbl) =
-  string_of_label fn.fn_name lbl
-
 let hash_to_string (to_string : 'a -> string) =
   let tbl = Hashtbl.create 17 in
   fun r ->

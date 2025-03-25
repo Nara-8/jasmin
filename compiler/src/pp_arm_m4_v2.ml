@@ -11,6 +11,7 @@ open Prog
 open Var0
 open Asm_printer
 open Risc_utils
+open Asm_utils
 
 (* Architecture imports*)
 open Arm_decl
@@ -296,7 +297,7 @@ let pp_funcs funs = List.concat_map pp_fun funs
 let pp_data globs names =
   if not (List.is_empty globs) then
     Instr (".p2align", ["5"]) ::
-    Label Risc_utils.global_datas_label ::
+    Label global_datas_label ::
     format_glob_data globs names
   else []
 
