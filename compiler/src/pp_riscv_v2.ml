@@ -24,9 +24,9 @@ let imm_pre = ""
 let pp_reg_address_aux base disp off scal =
   match (disp, off, scal) with
   | None, None, None ->
-      Printf.sprintf "(%s)" base
+      Format.asprintf "(%s)" base
   | Some disp, None, None ->
-      Printf.sprintf "%s%s(%s)" imm_pre disp base
+      Format.asprintf "%s%s(%s)" imm_pre disp base
   | _, _, _ ->
       hierror
       ~loc:Lnone

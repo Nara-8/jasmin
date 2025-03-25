@@ -33,13 +33,13 @@ let imm_pre = "#"
 let pp_reg_address_aux base disp off scal =
   match (disp, off, scal) with
   | None, None, None ->
-      Printf.sprintf "[%s]" base
+      Format.asprintf "[%s]" base
   | Some disp, None, None ->
-      Printf.sprintf "[%s, %s%s]" base imm_pre disp
+      Format.asprintf "[%s, %s%s]" base imm_pre disp
   | None, Some off, None ->
-      Printf.sprintf "[%s, %s]" base off
+      Format.asprintf "[%s, %s]" base off
   | None, Some off, Some scal ->
-      Printf.sprintf "[%s, %s, lsl %s%s]" base off imm_pre scal
+      Format.asprintf "[%s, %s, lsl %s%s]" base off imm_pre scal
   | _, _, _ ->
       hierror
       ~loc:Lnone
@@ -91,7 +91,7 @@ let pp_shift (ARM_op (_, opts)) args =
       args
   | Some sk ->
       let sh = pp_shift_kind sk in
-      List.modify_last (Printf.sprintf "%s %s" sh) args
+      List.modify_last (Format.asprintf "%s %s" sh) args
 
 let pp_mnemonic_ext (ARM_op (_, opts) as op) suff args =
   let id = instr_desc Arm_decl.arm_decl Arm_instr_decl.arm_op_decl (None, op) in
@@ -225,7 +225,7 @@ let pp_instr fn i =
       [ Instr ("bx", [ lbl ]) ]
 
   | Jcc (lbl, ct) ->
-      let iname = Printf.sprintf "b%s" (pp_condt ct) in
+      let iname = Format.asprintf "b%s" (pp_condt ct) in
       [ Instr (iname, [ pp_label fn lbl ]) ]
 
   | JAL (LR, lbl) ->
@@ -271,7 +271,7 @@ let pp_body fn =
 (* -------------------------------------------------------------------- *)
 (* TODO_ARM: This is architecture-independent. *)
 
-let mangle x = Printf.sprintf "_%s" x
+let mangle x = Format.asprintf "_%s" x
 
 let pp_brace s = Format.sprintf "{%s}" s
 

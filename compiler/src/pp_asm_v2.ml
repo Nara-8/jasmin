@@ -65,19 +65,19 @@ let pp_register ~(reg_prefix:string) (ws : rsize) (reg : register) =
 
   let s = 
     match lreg_of_reg reg, ws with
-    | RNumeric i, `U8  -> Printf.sprintf "r%d%s" i "b"
-    | RNumeric i, `U16 -> Printf.sprintf "r%d%s" i "w"
-    | RNumeric i, `U32 -> Printf.sprintf "r%d%s" i "d"
-    | RNumeric i, `U64 -> Printf.sprintf "r%d%s" i ""
-    | RAlpha c  , `U8  -> Printf.sprintf "%s%c%s" ""  c "l"
-    | RAlpha c  , `U16 -> Printf.sprintf "%s%c%s" ""  c "x"
-    | RAlpha c  , `U32 -> Printf.sprintf "%s%c%s" "e" c "x"
-    | RAlpha c  , `U64 -> Printf.sprintf "%s%c%s" "r" c "x"
-    | RSpecial x, `U8  -> Printf.sprintf "%s%s%s" ""  (ssp x) "l"
-    | RSpecial x, `U16 -> Printf.sprintf "%s%s%s" ""  (ssp x) ""
-    | RSpecial x, `U32 -> Printf.sprintf "%s%s%s" "e" (ssp x) ""
-    | RSpecial x, `U64 -> Printf.sprintf "%s%s%s" "r" (ssp x) "" in
-  Printf.sprintf "%s%s" reg_prefix s   
+    | RNumeric i, `U8  -> Format.asprintf "r%d%s" i "b"
+    | RNumeric i, `U16 -> Format.asprintf "r%d%s" i "w"
+    | RNumeric i, `U32 -> Format.asprintf "r%d%s" i "d"
+    | RNumeric i, `U64 -> Format.asprintf "r%d%s" i ""
+    | RAlpha c  , `U8  -> Format.asprintf "%s%c%s" ""  c "l"
+    | RAlpha c  , `U16 -> Format.asprintf "%s%c%s" ""  c "x"
+    | RAlpha c  , `U32 -> Format.asprintf "%s%c%s" "e" c "x"
+    | RAlpha c  , `U64 -> Format.asprintf "%s%c%s" "r" c "x"
+    | RSpecial x, `U8  -> Format.asprintf "%s%s%s" ""  (ssp x) "l"
+    | RSpecial x, `U16 -> Format.asprintf "%s%s%s" ""  (ssp x) ""
+    | RSpecial x, `U32 -> Format.asprintf "%s%s%s" "e" (ssp x) ""
+    | RSpecial x, `U64 -> Format.asprintf "%s%s%s" "r" (ssp x) "" in
+  Format.asprintf "%s%s" reg_prefix s   
 
 (* -------------------------------------------------------------------- *)
 
@@ -257,10 +257,10 @@ module IntelSyntax : X86AsmSyntax = struct
 
   let pp_adress ws (addr : (_, _, _, _, _) Arch_decl.address) =
     match addr with
-    | Areg ra -> Printf.sprintf "%s ptr[%s]" (pp_address_size ws) (pp_reg_address ra)
+    | Areg ra -> Format.asprintf "%s ptr[%s]" (pp_address_size ws) (pp_reg_address ra)
     | Arip d ->
       let disp = Z.to_string (Conv.z_of_int64 d) in
-      Printf.sprintf "%s ptr [rip + %s + %s]" (pp_address_size ws) global_datas_label disp
+      Format.asprintf "%s ptr [rip + %s + %s]" (pp_address_size ws) global_datas_label disp
   
   let rev_args args = args
 
@@ -301,11 +301,11 @@ module ATTSyntax : X86AsmSyntax = struct
   
       match off, scal with
       | None, _ ->
-          Printf.sprintf "%s(%s)" disp base
+          Format.asprintf "%s(%s)" disp base
       | Some off, O ->
-          Printf.sprintf "%s(%s,%s)" disp base off
+          Format.asprintf "%s(%s,%s)" disp base off
       | Some off, _ ->
-          Printf.sprintf "%s(%s,%s,%s)" disp base off (pp_scale scal)
+          Format.asprintf "%s(%s,%s,%s)" disp base off (pp_scale scal)
     end
   
   let pp_adress _ws (addr : (_, _, _, _, _) Arch_decl.address) =
@@ -313,7 +313,7 @@ module ATTSyntax : X86AsmSyntax = struct
     | Areg ra -> pp_reg_address ra
     | Arip d ->
       let disp = Z.to_string (Conv.z_of_int64 d) in
-      Printf.sprintf "%s + %s(%%rip)" global_datas_label disp
+      Format.asprintf "%s + %s(%%rip)" global_datas_label disp
   
   let rev_args = List.rev 
 
@@ -371,7 +371,7 @@ module X86AsmTranslate (AsmSyntax: X86AsmSyntax) = struct
       pp_ct (match ct with Condt ct -> ct | _ -> assert false)
 
   let pp_name_extension pp_op =
-    Printf.sprintf "%s%s" pp_op.pp_aop_name (pp_ext pp_op.pp_aop_ext)
+    Format.asprintf "%s%s" pp_op.pp_aop_name (pp_ext pp_op.pp_aop_ext)
 
   let asm_instr_r name instr_r = 
     match instr_r with 
