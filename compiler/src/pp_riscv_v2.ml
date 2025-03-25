@@ -14,8 +14,6 @@ open Asm_utils
 open Riscv_decl
 open Riscv_instr_decl
 
-
-
 let arch = riscv_decl
 let arch_name = "RISCV"
 
@@ -136,7 +134,6 @@ let pp_instr fn i =
       let args = List.filter_map (fun (_, a) -> pp_asm_arg a) pp.pp_aop_args in
       [ Instr (name, args) ]
 
-
 (* -------------------------------------------------------------------- *)
 
 let pp_body fn =
@@ -149,32 +146,38 @@ let pp_body fn =
     [Dwarf (DebugInfo.source_positions ii.base_loc)]
     i
 
-(* -------------------------------------------------------------------- *)
+let pp_fn_head fn fd =
+  let fn = escape fn in
+  if fd.asm_fd_export then
+    [ Instr (".global", [ mangle fn ]); Instr (".global", [ fn ]) ]
+  else []
+
+let pp_fn_prefix fn fd = 
+  let fn = escape fn in
+  if fd.asm_fd_export then
+    [ 
+      Label (mangle fn);
+      Label fn;
+      Instr ("addi", [ pp_register SP; pp_register SP; "-4"]);
+      Instr ("sw", [ pp_register RA;  pp_reg_address_aux (pp_register SP) None None None])
+    ]
+  else []
+
+let pp_fn_pos fn fd = 
+  if fd.asm_fd_export then
+    [ 
+      Instr ("lw", [ pp_register RA;  pp_reg_address_aux (pp_register SP) None None None]);
+      Instr ("addi", [ pp_register SP; pp_register SP; "4"]);
+      Instr ("ret", [ ]) 
+    ]
+  else []
 
 let pp_fun (fn, fd) =
   let fn = fn.fn_name in
-  let head =
-    let fn = escape fn in
-    if fd.asm_fd_export then
-      [ Instr (".global", [ mangle fn ]); Instr (".global", [ fn ]); ]
-    else []
-  in let pre =
-    let fn = escape fn in
-    if fd.asm_fd_export then
-      [ Label (mangle fn);
-        Label fn;
-        Instr ("addi", [ pp_register SP; pp_register SP; "-4"]);
-        Instr ("sw", [ pp_register RA;  pp_reg_address_aux (pp_register SP) None None None])]
-    else []
-  in
+  let head = pp_fn_head fn fd in
+  let pre = pp_fn_prefix fn fd in
   let body = pp_body fn fd.asm_fd_body in
-  let pos =
-    if fd.asm_fd_export then
-      [ Instr ("lw", [ pp_register RA;  pp_reg_address_aux (pp_register SP) None None None]);
-        Instr ("addi", [ pp_register SP; pp_register SP; "4"]);
-        Instr ("ret", [ ]) ]
-    else []
-  in
+  let pos = pp_fn_pos fn fd in
   head @ pre @ body @ pos
 
 let pp_funcs funs = List.concat_map pp_fun funs

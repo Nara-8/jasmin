@@ -261,35 +261,41 @@ let pp_instr fn i =
 let pp_body fn =
   let open List in
   concat_map @@ fun { asmi_i = i ; asmi_ii = (ii, _) } ->
-  let i = 
-    try pp_instr fn i 
+  let i =
+    try pp_instr fn i
     with HiError err -> raise (HiError (Utils.add_iloc err ii)) in
   append
     [Dwarf (DebugInfo.source_positions ii.base_loc)]
     i
 
-(* -------------------------------------------------------------------- *)
-(* TODO_ARM: This is architecture-independent. *)
+let pp_fn_head fn fd =
+  let fn = escape fn in
+  if fd.asm_fd_export then
+    [ Instr (".global", [ mangle fn ]); Instr (".global", [ fn ]) ]
+  else []
 
-let mangle x = Format.asprintf "_%s" x
+let pp_fn_prefix fn fd = 
+  let fn = escape fn in
+  if fd.asm_fd_export then
+    [ 
+      Label (mangle fn);
+      Label fn;
+      Instr ("push", [pp_brace (pp_register LR)]) 
+    ] 
+  else []
 
-let pp_brace s = Format.sprintf "{%s}" s
+let pp_fn_pos fn fd =
+  (* TODO_ARM: Review. *)
+  if fd.asm_fd_export then 
+    pp_instr fn POPPC 
+  else [] 
 
 let pp_fun (fn, fd) =
   let fn = fn.fn_name in
-  let head =
-    let fn = escape fn in
-    if fd.asm_fd_export then
-      [ Instr (".global", [ mangle fn ]); Instr (".global", [ fn ]) ]
-    else []
-  in
-  let pre =
-    let fn = escape fn in
-    if fd.asm_fd_export then [ Label (mangle fn); Label fn; Instr ("push", [pp_brace (pp_register LR)]) ] else []
-  in
+  let head = pp_fn_head fn fd in
+  let pre = pp_fn_prefix fn fd in
   let body = pp_body fn fd.asm_fd_body in
-  (* TODO_ARM: Review. *)
-  let pos = if fd.asm_fd_export then pp_instr fn POPPC else [] in
+  let pos = pp_fn_pos fn fd in
   head @ pre @ body @ pos
 
 let pp_funcs funs = List.concat_map pp_fun funs
