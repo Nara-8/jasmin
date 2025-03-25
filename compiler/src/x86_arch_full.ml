@@ -38,7 +38,7 @@ module X86_core = struct
 
   let pp_asm = Ppasm.pp_prog
 
-  let pp_asm_v2 fmt asm = Asm_utils.pp_asm fmt (Pp_asm_v2.asm_of_prog asm)
+  let pp_asm_v2 = Pp_asm_v2.print_prog
   let callstyle = Arch_full.StackDirect
 
   let known_implicits = ["OF","_of_"; "CF", "_cf_"; "SF", "_sf_"; "ZF", "_zf_"]

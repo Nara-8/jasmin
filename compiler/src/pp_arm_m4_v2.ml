@@ -9,12 +9,16 @@ open Utils
 open PrintCommon
 open Prog
 open Var0
+open Asm_printer
+open Risc_utils
+
+(* Architecture imports*)
 open Arm_decl
 open Arm_instr_decl
 open Arm_expand_imm
-open Asm_utils
 
 let arch = arm_decl
+let arch_name = "ARM"
 
 let imm_pre = "#"
 
@@ -36,64 +40,23 @@ let pp_reg_address_aux base disp off scal =
   | None, Some off, Some scal ->
       Printf.sprintf "[%s, %s, lsl %s%s]" base off imm_pre scal
   | _, _, _ ->
-     hierror
+      hierror
       ~loc:Lnone
       ~kind:"assembly printing"
       "the address computation is too complex: an intermediate variable might be needed"
 
-let global_datas = "glob_data"
+let pp_imm = Risc_utils.pp_imm imm_pre
 
-let pp_rip_address (p : Ssralg.GRing.ComRing.sort) : string =
-  Format.asprintf "%s+%a" global_datas Z.pp_print (Conv.z_of_int32 p)
+let pp_register = Risc_utils.pp_register arch
 
-(* -------------------------------------------------------------------- *)
-(* TODO_ARM: This is architecture-independent. *)
+let pp_reg_address addr =
+  Risc_utils.pp_reg_address arch arch_name pp_reg_address_aux addr
 
-let string_of_label name p =
-  Format.asprintf "L%s$%d" (escape name) (Conv.int_of_pos p)
-
-let pp_label n lbl = string_of_label n lbl
-
-let pp_remote_label (fn, lbl) =
-  string_of_label fn.fn_name lbl
-
-let hash_to_string (to_string : 'a -> string) =
-  let tbl = Hashtbl.create 17 in
-  fun r ->
-     try Hashtbl.find tbl r
-     with Not_found ->
-       let s = to_string r in
-       Hashtbl.add tbl r s;
-       s
-
-let pp_register = hash_to_string arch.toS_r.to_string
+let pp_address = Risc_utils.pp_address arch arch_name pp_reg_address_aux
 
 let pp_condt = hash_to_string string_of_condt
 
-let pp_imm imm = Printf.sprintf "%s%s" imm_pre (Z.to_string imm)
-
-let pp_reg_address addr =
-  match addr.ad_base with
-  | None ->
-      failwith "TODO_ARM: pp_reg_address"
-  | Some r ->
-      let base = pp_register r in
-      let disp = Conv.z_of_word (arch_pd arch) addr.ad_disp in
-      let disp =
-        if Z.equal disp Z.zero then None else Some (Z.to_string disp)
-      in
-      let off = Option.map pp_register addr.ad_offset in
-      let scal = Conv.z_of_nat addr.ad_scale in
-      let scal =
-        if Z.equal scal Z.zero then None else Some (Z.to_string scal)
-      in
-      pp_reg_address_aux base disp off scal
-
-let pp_address addr =
-  match addr with
-  | Areg ra -> pp_reg_address ra
-  | Arip r -> pp_rip_address r
-
+(* this can probably be factor out, but I'm unsure how to do it for the moment*)
 let pp_asm_arg (arg : (register, Arch_utils.empty, Arch_utils.empty, rflag, condt) asm_arg) =
   match arg with
   | Condt _ -> None
@@ -333,7 +296,7 @@ let pp_funcs funs = List.concat_map pp_fun funs
 let pp_data globs names =
   if not (List.is_empty globs) then
     Instr (".p2align", ["5"]) ::
-    Label global_datas ::
+    Label Risc_utils.global_datas_label ::
     format_glob_data globs names
   else []
 
@@ -342,4 +305,4 @@ let pp_prog p =
   let data = pp_data p.asm_globs p.asm_glob_names in
   headers @ code @ data
 
-let print_prog fmt p = Asm_utils.pp_asm fmt (pp_prog p)
+let print_prog fmt p = Asm_printer.pp_asm fmt (pp_prog p)

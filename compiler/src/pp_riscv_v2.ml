@@ -6,20 +6,20 @@ open Utils
 open PrintCommon
 open Prog
 open Var0
+open Asm_printer
+open Risc_utils
+
+(* Architecture imports*)
 open Riscv_decl
 open Riscv_instr_decl
 
-open Asm_utils
+
 
 let arch = riscv_decl
+let arch_name = "RISCV"
 
 let imm_pre = ""
 
-(* We support the following RISC-V memory accesses.
-   Offset addressing:
-     - A base register and an immediate offset (displacement):
-       #+/-<imm>(<reg>) (where + can be omitted).
-*)
 let pp_reg_address_aux base disp off scal =
   match (disp, off, scal) with
   | None, None, None ->
@@ -32,56 +32,14 @@ let pp_reg_address_aux base disp off scal =
       ~kind:"assembly printing"
       "the address computation is too complex: an intermediate variable might be needed"
 
+let pp_imm = Risc_utils.pp_imm imm_pre
 
-let global_datas = "glob_data"
+let pp_register = Risc_utils.pp_register arch
 
-let pp_rip_address (p : Ssralg.GRing.ComRing.sort) : string =
-  Format.asprintf "%s+%a" global_datas Z.pp_print (Conv.z_of_int32 p)
+let pp_reg_address addr =
+  Risc_utils.pp_reg_address arch arch_name pp_reg_address_aux addr
 
-(* -------------------------------------------------------------------- *)
-(* TODO_RISCV: This is architecture-independent. *)
-(* Assembly code lines. *)
-
-(* type asm_line =
-  | LLabel of string
-  | LInstr of string * string list
-  | LByte of string
-
-let iwidth = 4
-
-let print_asm_line fmt ln =
-  match ln with
-  | LLabel lbl ->
-      Format.fprintf fmt "%s:" lbl
-  | LInstr (s, []) ->
-      Format.fprintf fmt "\t%-*s" iwidth s
-  | LInstr (s, args) ->
-      Format.fprintf fmt "\t%-*s\t%s" iwidth s (String.concat ", " args)
-  | LByte n -> Format.fprintf fmt "\t.byte\t%s" n
-
-let print_asm_lines fmt lns =
-  List.iter (Format.fprintf fmt "%a\n%!" print_asm_line) lns *)
-
-(* -------------------------------------------------------------------- *)
-(* TODO_RISCV: This is architecture-independent. *)
-
-let string_of_label name p = Printf.sprintf "L%s$%d" (escape name) (Conv.int_of_pos p)
-
-let pp_label n lbl = string_of_label n lbl
-
-let pp_remote_label (fn, lbl) =
-  string_of_label fn.fn_name lbl
-
-let hash_to_string (to_string : 'a -> string) =
-  let tbl = Hashtbl.create 17 in
-  fun r ->
-     try Hashtbl.find tbl r
-     with Not_found ->
-       let s = to_string r in
-       Hashtbl.add tbl r s;
-       s
-
-let pp_register = hash_to_string arch.toS_r.to_string
+let pp_address = Risc_utils.pp_address arch arch_name pp_reg_address_aux
 
 let pp_condition_kind  (ck : Riscv_decl.condition_kind) =
   match ck with
@@ -97,30 +55,8 @@ let pp_cond_arg (ro: Riscv_decl.register option) =
   | Some r -> pp_register r
   | None -> "x0"
 
-let pp_imm imm = Format.asprintf "%s%s" imm_pre (Z.to_string imm)
 
-let pp_reg_address addr =
-  match addr.ad_base with
-  | None ->
-      failwith "TODO_RISCV: pp_reg_address"
-  | Some r ->
-      let base = pp_register r in
-      let disp = Conv.z_of_word (arch_pd arch) addr.ad_disp in
-      let disp =
-        if Z.equal disp Z.zero then None else Some (Z.to_string disp)
-      in
-      let off = Option.map pp_register addr.ad_offset in
-      let scal = Conv.z_of_nat addr.ad_scale in
-      let scal =
-        if Z.equal scal Z.zero then None else Some (Z.to_string scal)
-      in
-      pp_reg_address_aux base disp off scal
-
-let pp_address addr =
-  match addr with
-  | Areg ra -> pp_reg_address ra
-  | Arip r -> pp_rip_address r
-
+(* this can probably be factor out, but I'm unsure how to do it for the moment*)
 let pp_asm_arg (arg : (register, Arch_utils.empty, Arch_utils.empty, Arch_utils.empty, condt) asm_arg) =
   match arg with
   | Condt _ -> None
@@ -152,9 +88,7 @@ let pp_ext = function
 let pp_name_ext pp_op =
   Format.asprintf "%s%s" pp_op.pp_aop_name (pp_ext pp_op.pp_aop_ext)
 
-let pp_syscall (o : _ Syscall_t.syscall_t) =
-  match o with
-  | Syscall_t.RandomBytes _ -> "__jasmin_syscall_randombytes__"
+
 
 let pp_instr fn i =
   match i with
@@ -215,11 +149,6 @@ let pp_body fn =
     i
 
 (* -------------------------------------------------------------------- *)
-(* TODO_RISCV: This is architecture-independent. *)
-
-let mangle x = Printf.sprintf "_%s" x
-
-let pp_brace s = Format.sprintf "{%s}" s
 
 let pp_fun (fn, fd) =
   let fn = fn.fn_name in
@@ -252,12 +181,12 @@ let pp_funcs funs = List.concat_map pp_fun funs
 let pp_data globs =
   if not (List.is_empty globs) then
     Instr (".p2align", ["5"]) ::
-    Label global_datas :: List.map (fun b -> Byte (Z.to_string (Conv.z_of_int8 b))) globs
+    Label Risc_utils.global_datas_label :: List.map (fun b -> Byte (Z.to_string (Conv.z_of_int8 b))) globs
   else []
 
 let pp_prog p =
   let code = pp_funcs p.asm_funcs in
   let data = pp_data p.asm_globs in
   headers @ code @ data
-let print_prog fmt p = Asm_utils.pp_asm fmt (pp_prog p)
 
+let print_prog fmt p = Asm_printer.pp_asm fmt (pp_prog p)

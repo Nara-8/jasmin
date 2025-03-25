@@ -7,7 +7,7 @@ open Arch_decl
 type asm_element = 
 | Header of string * string list
 | Label of string
-| Dwarf of string list
+| Dwarf of string list (* Debug info in std dwarf format*)
 | Instr of string * string list
 | Comment of string
 | Byte of string

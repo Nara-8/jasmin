@@ -10,7 +10,7 @@ open Var0
 open X86_decl
 open Wsize
 
-open Asm_utils
+open Asm_printer
 
 type rsize = [ `U8 | `U16 | `U32 | `U64 ]
 
@@ -141,6 +141,8 @@ let pp_scale (scale : Datatypes.nat) =
 let global_datas = "glob_data"
 
 (* -------------------------------------------------------------------- *)
+
+(* factor*)
 let string_of_label = string_of_label
 
 let string_of_remote_label (fn, lbl) =
@@ -500,7 +502,7 @@ module X86AsmTranslate (AsmSyntax: X86AsmSyntax) = struct
       ]
 
   let asm_data_segment_body globs names =
-    let datas = Asm_utils.format_glob_data globs names in
+    let datas = Asm_printer.format_glob_data globs names in
     List.fold_left (fun acc data -> 
       acc @ [(data)]
     ) [] datas
@@ -530,3 +532,5 @@ let asm_of_prog (asm : X86_instr_decl.x86_prog) =
   match !Glob_options.assembly_style with
   | `ATT -> TranslateATT.asm_of_prog asm
   | `Intel -> TranslateIntel.asm_of_prog asm
+
+let print_prog fmt p = Asm_printer.pp_asm fmt (asm_of_prog p)
