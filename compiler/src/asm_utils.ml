@@ -16,6 +16,6 @@ let pp_label n lbl = string_of_label n lbl
 let pp_remote_label (fn, lbl) =
   string_of_label fn.fn_name lbl
 
-  let mangle x = Format.asprintf "_%s" x
+let mangle x = Format.asprintf "_%s" x
 
-  let pp_brace s = Format.asprintf "{%s}" s
+let pp_brace s = Format.asprintf "{%s}" s
