@@ -1,5 +1,6 @@
 open Utils
 open Wsize
+open Operators
 open Prog
 open PrintCommon
 module E = Expr
@@ -358,10 +359,10 @@ type ('len) env = {
 
 (* ------------------------------------------------------------------- *)
 let add_ptr pd x e =
-  (Prog.tu pd, Papp2 (E.Oadd ( E.Op_w pd), Pvar x, e))
+  (Prog.tu pd, Papp2 (Oadd ( Op_w pd), Pvar x, e))
 
 let int_of_word ws e =
-  Papp1 (E.Oint_of_word ws, e)
+  Papp1 (Oint_of_word ws, e)
 
 
 let rec leaks_e_rec pd leaks e =
@@ -712,42 +713,42 @@ let add_glob env x =
 
 let swap_op2 op e1 e2 =
   match op with
-  | E.Ogt   _ -> e2, e1
-  | E.Oge   _ -> e2, e1
+  | Ogt   _ -> e2, e1
+  | Oge   _ -> e2, e1
   | _         -> e1, e2
 
 let pp_signed fmt ws is = function
-  | E.Cmp_w (Signed, _)   -> Format.fprintf fmt "\\s%s" ws
-  | E.Cmp_w (Unsigned, _) -> Format.fprintf fmt "\\u%s" ws
+  | Cmp_w (Signed, _)   -> Format.fprintf fmt "\\s%s" ws
+  | Cmp_w (Unsigned, _) -> Format.fprintf fmt "\\u%s" ws
   | _                     -> Format.fprintf fmt "%s" is
 
 let pp_vop2 fmt (s,ve,ws) =
   Format.fprintf fmt "\\v%s%iu%i" s (int_of_velem ve) (int_of_ws ws)
 
 let pp_op2 fmt = function
-  | E.Obeq   -> Format.fprintf fmt "="
-  | E.Oand   -> Format.fprintf fmt "/\\"
-  | E.Oor    -> Format.fprintf fmt "\\/"
-  | E.Oadd _ -> Format.fprintf fmt "+"
-  | E.Omul _ -> Format.fprintf fmt "*"
-  | E.Odiv s -> pp_signed fmt "div" "%/" s
-  | E.Omod s -> pp_signed fmt "mod" "%%" s
+  | Obeq   -> Format.fprintf fmt "="
+  | Oand   -> Format.fprintf fmt "/\\"
+  | Oor    -> Format.fprintf fmt "\\/"
+  | Oadd _ -> Format.fprintf fmt "+"
+  | Omul _ -> Format.fprintf fmt "*"
+  | Odiv s -> pp_signed fmt "div" "%/" s
+  | Omod s -> pp_signed fmt "mod" "%%" s
 
-  | E.Osub  _ -> Format.fprintf fmt "-"
+  | Osub  _ -> Format.fprintf fmt "-"
 
-  | E.Oland _ -> Format.fprintf fmt "`&`"
-  | E.Olor  _ -> Format.fprintf fmt "`|`"
-  | E.Olxor _ -> Format.fprintf fmt "`^`"
-  | E.Olsr  _ -> Format.fprintf fmt "`>>`"
-  | E.Olsl  _ -> Format.fprintf fmt "`<<`"
-  | E.Oasr  _ -> Format.fprintf fmt "`|>>`"
-  | E.Orol _ -> Format.fprintf fmt "`|<<|`"
-  | E.Oror _ -> Format.fprintf fmt "`|>>|`"
+  | Oland _ -> Format.fprintf fmt "`&`"
+  | Olor  _ -> Format.fprintf fmt "`|`"
+  | Olxor _ -> Format.fprintf fmt "`^`"
+  | Olsr  _ -> Format.fprintf fmt "`>>`"
+  | Olsl  _ -> Format.fprintf fmt "`<<`"
+  | Oasr  _ -> Format.fprintf fmt "`|>>`"
+  | Orol _ -> Format.fprintf fmt "`|<<|`"
+  | Oror _ -> Format.fprintf fmt "`|>>|`"
 
-  | E.Oeq   _ -> Format.fprintf fmt "="
-  | E.Oneq  _ -> Format.fprintf fmt "<>"
-  | E.Olt s| E.Ogt s -> pp_signed fmt "lt" "<" s
-  | E.Ole s | E.Oge s -> pp_signed fmt "le" "<=" s
+  | Oeq   _ -> Format.fprintf fmt "="
+  | Oneq  _ -> Format.fprintf fmt "<>"
+  | Olt s| Ogt s -> pp_signed fmt "lt" "<" s
+  | Ole s | Oge s -> pp_signed fmt "le" "<=" s
 
   | Ovadd(ve,ws) -> pp_vop2 fmt ("add", ve, ws)
   | Ovsub(ve,ws) -> pp_vop2 fmt ("sub", ve, ws)
@@ -869,16 +870,16 @@ module Exp = struct
         Eapp (ec_Array_init env n, [init_fun])
 
   let ec_op1 op e = match op with
-    | E.Oword_of_int sz ->
+    | Oword_of_int sz ->
       ec_apps1 (Format.sprintf "%s.of_int" (pp_Tsz sz)) e
-    | E.Oint_of_word sz ->
+    | Oint_of_word sz ->
       ec_apps1 (Format.sprintf "%s.to_uint" (pp_Tsz sz)) e
-    | E.Osignext(szo,_szi) ->
+    | Osignext(szo,_szi) ->
       ec_apps1 (Format.sprintf "sigextu%i" (int_of_ws szo)) e
-    | E.Ozeroext(szo,szi) -> ec_zeroext (szo, szi) e
-    | E.Onot     -> ec_apps1 "!" e
-    | E.Olnot _  -> ec_apps1 "invw" e
-    | E.Oneg _   -> ec_apps1 "-" e
+    | Ozeroext(szo,szi) -> ec_zeroext (szo, szi) e
+    | Onot     -> ec_apps1 "!" e
+    | Olnot _  -> ec_apps1 "invw" e
+    | Oneg _   -> ec_apps1 "-" e
 
   let pp_access aa = if aa = Warray_.AAdirect then "_direct" else ""
 
@@ -1000,8 +1001,14 @@ module Exp = struct
       let map = Eapp (ec_ident "map", [lambda2;iota]) in
       Eapp (ec_ident "foldr", [lambda1;i; map])
     | Pis_var_init x -> assert false
-    | Pis_arr_init (x,e1,e2) -> Eapp (ec_ident "arr_init",[ec_vari env (L.unloc x); toec_expr env e1; toec_expr env e2] )
-    | Pis_mem_init (e1,e2) -> Eapp (ec_ident "mem_init", [toec_expr env e1; toec_expr env e2])
+    | Pis_arr_init (x,e1,e2) ->
+      let e1 = toec_expr env e1 in
+      let e2 = toec_expr env e2 in
+       Eapp (ec_ident "is_init",[ec_vari env (L.unloc x); e1;e2] )
+    | Pis_mem_init (e1,e2) -> 
+      let e1 = toec_expr env e1 in
+      let e2 = toec_expr env e2 in
+      Eapp (ec_ident "is_valid", [e1; e2])
 end
 
 open Ec
